@@ -1,0 +1,9 @@
+node_modules/
+task-manager/node_modules/
+task-manager/backend/node_modules/
+task-manager/dist/
+task-manager/backend/dev.db
+task-manager/backend/dev.db-journal
+task-manager/backend/.env
+uploads/
+.env

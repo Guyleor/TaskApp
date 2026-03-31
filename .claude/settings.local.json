@@ -1,0 +1,24 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(mkdir -p /c/Users/GL/Desktop/TASKAPP/task-manager/backend/prisma)",
+      "Bash(mkdir -p /c/Users/GL/Desktop/TASKAPP/task-manager/backend/src/routes)",
+      "Bash(mkdir -p /c/Users/GL/Desktop/TASKAPP/task-manager/backend/src/middleware)",
+      "Bash(mkdir -p /c/Users/GL/Desktop/TASKAPP/task-manager/backend/uploads)",
+      "Bash(mkdir -p /c/Users/GL/Desktop/TASKAPP/task-manager/src/api)",
+      "Bash(mkdir -p /c/Users/GL/Desktop/TASKAPP/task-manager/src/context)",
+      "Bash(mkdir -p /c/Users/GL/Desktop/TASKAPP/task-manager/src/components/common)",
+      "Bash(mkdir -p /c/Users/GL/Desktop/TASKAPP/task-manager/src/components/Layout)",
+      "Bash(mkdir -p /c/Users/GL/Desktop/TASKAPP/task-manager/src/pages)",
+      "Bash(\"/c/Program Files/nodejs/npm.cmd\" install react-router-dom)",
+      "Bash(\"/c/Program Files/nodejs/npm.cmd\" install)",
+      "Bash(export PATH=\"$PATH:/c/Program Files/nodejs\")",
+      "Bash(npm install:*)",
+      "Bash(npx prisma:*)",
+      "mcp__Claude_Preview__preview_start",
+      "Bash(sc query:*)",
+      "Read(//c/Program Files/**)",
+      "Bash(node prisma/seed.js)"
+    ]
+  }
+}
