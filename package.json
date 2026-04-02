@@ -2,7 +2,7 @@
   "name": "taskapp",
   "version": "1.0.0",
   "scripts": {
-    "build": "npm install --prefix task-manager && npm run build --prefix task-manager && npm install --prefix task-manager/backend",
+    "build": "npm install --prefix task-manager/backend",
     "start": "node task-manager/backend/src/index.js"
   },
   "engines": {
