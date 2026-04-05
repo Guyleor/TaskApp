@@ -5,12 +5,19 @@ import Navbar from './Navbar'
 
 export default function Layout() {
   const [collapsed, setCollapsed] = useState(false)
+  const [mobileOpen, setMobileOpen] = useState(false)
 
   return (
     <div className="app-layout">
-      <Sidebar collapsed={collapsed} onToggle={() => setCollapsed(c => !c)} />
+      {mobileOpen && <div className="sidebar-overlay" onClick={() => setMobileOpen(false)} />}
+      <Sidebar
+        collapsed={collapsed}
+        onToggle={() => setCollapsed(c => !c)}
+        mobileOpen={mobileOpen}
+        onMobileClose={() => setMobileOpen(false)}
+      />
       <div className={`main-content ${collapsed ? 'sidebar-collapsed' : ''}`}>
-        <Navbar />
+        <Navbar onMobileToggle={() => setMobileOpen(o => !o)} />
         <div className="page-content">
           <Outlet />
         </div>

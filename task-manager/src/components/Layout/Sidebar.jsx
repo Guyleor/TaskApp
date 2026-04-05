@@ -14,7 +14,7 @@ const adminItems = [
   { path: '/users', icon: '👥', label: 'משתמשים' },
 ]
 
-export default function Sidebar({ collapsed, onToggle }) {
+export default function Sidebar({ collapsed, onToggle, mobileOpen, onMobileClose }) {
   const navigate = useNavigate()
   const location = useLocation()
   const { user, logout } = useAuth()
@@ -28,7 +28,7 @@ export default function Sidebar({ collapsed, onToggle }) {
   }
 
   return (
-    <div className={`sidebar ${collapsed ? 'collapsed' : ''}`}>
+    <div className={`sidebar ${collapsed ? 'collapsed' : ''} ${mobileOpen ? 'mobile-open' : ''}`}>
       <div className="sidebar-logo">
         <div className="logo-icon">📋</div>
         {!collapsed && (
@@ -37,6 +37,7 @@ export default function Sidebar({ collapsed, onToggle }) {
             <div className="logo-sub">ניהול משימות</div>
           </div>
         )}
+        <button className="sidebar-mobile-close" onClick={onMobileClose}>✕</button>
       </div>
 
       <nav className="sidebar-nav">

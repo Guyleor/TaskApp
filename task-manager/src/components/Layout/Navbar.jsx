@@ -10,7 +10,7 @@ const titles = {
   '/users': { title: 'משתמשים', subtitle: 'ניהול משתמשים' },
 }
 
-export default function Navbar() {
+export default function Navbar({ onMobileToggle }) {
   const location = useLocation()
   const { user } = useAuth()
   const pageInfo = titles[location.pathname] || { title: 'TaskManager', subtitle: '' }
@@ -25,6 +25,7 @@ export default function Navbar() {
   return (
     <div className="navbar">
       <div className="navbar-left">
+        <button className="hamburger-btn" onClick={onMobileToggle}>☰</button>
         <div>
           <div className="page-title">{pageInfo.title}</div>
           <div className="page-subtitle">{pageInfo.subtitle}</div>
@@ -32,7 +33,7 @@ export default function Navbar() {
       </div>
 
       <div className="navbar-right">
-        <div style={{ fontSize: 12, color: 'var(--text-secondary)', textAlign: 'left' }}>
+        <div className="navbar-date" style={{ fontSize: 12, color: 'var(--text-secondary)', textAlign: 'left' }}>
           {dateStr}
         </div>
 
