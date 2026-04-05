@@ -18,14 +18,18 @@ const taskInclude = {
 
 // Get all tasks with filters
 router.get('/', authenticate, async (req, res) => {
-  const { status, priority, assigneeId, projectId, search } = req.query
+  const { status, priority, assigneeId, projectId, search, overdue } = req.query
   const where = {}
 
   if (status) where.status = status
   if (priority) where.priority = priority
   if (assigneeId) where.assigneeId = Number(assigneeId)
   if (projectId) where.projectId = Number(projectId)
-  if (search) where.title = { contains: search, mode: 'insensitive' }
+  if (search) where.title = { contains: search }
+  if (overdue === 'true') {
+    where.dueDate = { lt: new Date() }
+    where.status = { not: 'DONE' }
+  }
 
   // Employees only see their assigned tasks
   if (req.user.role === 'EMPLOYEE') {

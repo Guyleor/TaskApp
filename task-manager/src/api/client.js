@@ -70,4 +70,15 @@ export const api = {
 
   // AI
   generateDescription: (title, projectName) => request('POST', '/ai/describe', { title, projectName }),
+
+  // Project Files
+  getProjectFiles: (projectId) => request('GET', `/projects/${projectId}/files`),
+  uploadProjectFiles: (projectId, formData) => request('POST', `/projects/${projectId}/files`, formData, true),
+  deleteProjectFile: (projectId, fileId) => request('DELETE', `/projects/${projectId}/files/${fileId}`),
+
+  // Templates
+  getTemplates: () => request('GET', '/templates'),
+  createTemplate: (data) => request('POST', '/templates', data),
+  updateTemplate: (id, data) => request('PUT', `/templates/${id}`, data),
+  deleteTemplate: (id) => request('DELETE', `/templates/${id}`),
 }

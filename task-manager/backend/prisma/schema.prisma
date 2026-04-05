@@ -8,24 +8,27 @@ datasource db {
 }
 
 model User {
-  id          Int          @id @default(autoincrement())
-  name        String
-  email       String       @unique
-  password    String
-  role        String       @default("EMPLOYEE")
-  avatarColor String       @default("#6366f1")
-  createdAt   DateTime     @default(now())
-  assignedTasks Task[]     @relation("AssignedTo")
-  comments    Comment[]
+  id               Int            @id @default(autoincrement())
+  name             String
+  email            String         @unique
+  password         String
+  role             String         @default("EMPLOYEE")
+  avatarColor      String         @default("#6366f1")
+  createdAt        DateTime       @default(now())
+  assignedTasks    Task[]         @relation("AssignedTo")
+  comments         Comment[]
+  uploadedFiles    ProjectFile[]  @relation("UploadedFiles")
+  createdTemplates TaskTemplate[] @relation("CreatedTemplates")
 }
 
 model Project {
-  id          Int      @id @default(autoincrement())
+  id          Int           @id @default(autoincrement())
   name        String
   description String?
-  color       String   @default("#6366f1")
-  createdAt   DateTime @default(now())
+  color       String        @default("#6366f1")
+  createdAt   DateTime      @default(now())
   tasks       Task[]
+  files       ProjectFile[]
 }
 
 model Task {
@@ -64,4 +67,27 @@ model Attachment {
   taskId       Int
   task         Task     @relation(fields: [taskId], references: [id], onDelete: Cascade)
   createdAt    DateTime @default(now())
+}
+
+model ProjectFile {
+  id           Int      @id @default(autoincrement())
+  filename     String
+  originalName String
+  mimetype     String
+  size         Int
+  projectId    Int
+  project      Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  uploadedById Int
+  uploadedBy   User     @relation("UploadedFiles", fields: [uploadedById], references: [id])
+  createdAt    DateTime @default(now())
+}
+
+model TaskTemplate {
+  id          Int      @id @default(autoincrement())
+  name        String
+  description String?
+  priority    String   @default("MEDIUM")
+  createdById Int
+  createdBy   User     @relation("CreatedTemplates", fields: [createdById], references: [id])
+  createdAt   DateTime @default(now())
 }

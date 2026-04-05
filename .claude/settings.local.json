@@ -18,7 +18,11 @@
       "mcp__Claude_Preview__preview_start",
       "Bash(sc query:*)",
       "Read(//c/Program Files/**)",
-      "Bash(node prisma/seed.js)"
+      "Bash(node prisma/seed.js)",
+      "Bash(\"C:/Program Files/nodejs/node.exe\" ../../node_modules/.bin/prisma db push)",
+      "Bash(\"C:/Program Files/nodejs/node.exe\" node_modules/.bin/prisma db push)",
+      "Bash(\"C:/Program Files/nodejs/node.exe\" node_modules/prisma/bin/prisma.js db push)",
+      "Bash(\"C:/Program Files/nodejs/node.exe\" node_modules/prisma/build/index.js db push)"
     ]
   }
 }

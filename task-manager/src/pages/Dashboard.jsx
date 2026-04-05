@@ -53,23 +53,28 @@ export default function Dashboard() {
         <StatCard
           icon="📋" label="סה״כ משימות" value={stats?.total || 0}
           color="#6366f1" bgColor="#ede9fe"
+          onClick={() => navigate('/tasks')}
         />
         <StatCard
           icon="✅" label="הושלמו" value={stats?.done || 0}
           color="#10b981" bgColor="#d1fae5"
           sub={`${completionRate}% השלמה`}
+          onClick={() => navigate('/tasks?status=DONE')}
         />
         <StatCard
           icon="⚡" label="בתהליך" value={stats?.inProgress || 0}
           color="#3b82f6" bgColor="#dbeafe"
+          onClick={() => navigate('/tasks?status=IN_PROGRESS')}
         />
         <StatCard
           icon="⏰" label="באיחור" value={stats?.overdue || 0}
           color="#ef4444" bgColor="#fee2e2"
+          onClick={() => navigate('/tasks?overdue=true')}
         />
         <StatCard
           icon="📌" label="לביצוע" value={stats?.todo || 0}
           color="#f59e0b" bgColor="#fef3c7"
+          onClick={() => navigate('/tasks?status=TODO')}
         />
       </div>
 
@@ -170,9 +175,9 @@ export default function Dashboard() {
   )
 }
 
-function StatCard({ icon, label, value, color, bgColor, sub }) {
+function StatCard({ icon, label, value, color, bgColor, sub, onClick }) {
   return (
-    <div className="stat-card">
+    <div className="stat-card" onClick={onClick} style={{ cursor: onClick ? 'pointer' : 'default' }}>
       <div className="stat-icon" style={{ background: bgColor, color }}>
         {icon}
       </div>
@@ -181,6 +186,7 @@ function StatCard({ icon, label, value, color, bgColor, sub }) {
         <div className="stat-value" style={{ color }}>{value}</div>
         {sub && <div className="stat-change">{sub}</div>}
       </div>
+      {onClick && <div style={{ color: 'var(--text-light)', fontSize: 18, marginRight: 'auto' }}>›</div>}
     </div>
   )
 }

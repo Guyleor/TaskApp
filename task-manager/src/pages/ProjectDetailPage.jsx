@@ -5,6 +5,21 @@ import { useToast } from '../context/ToastContext'
 import { useAuth } from '../context/AuthContext'
 import Modal, { ConfirmModal } from '../components/common/Modal'
 
+function fileIcon(mimetype = '', name = '') {
+  if (mimetype.includes('image')) return '🖼️'
+  if (mimetype.includes('pdf')) return '📄'
+  if (mimetype.includes('word') || mimetype.includes('doc') || name.endsWith('.doc') || name.endsWith('.docx')) return '📝'
+  if (mimetype.includes('sheet') || mimetype.includes('excel') || name.endsWith('.xls') || name.endsWith('.xlsx')) return '📊'
+  if (mimetype.includes('zip') || mimetype.includes('rar')) return '🗜️'
+  return '📎'
+}
+
+function formatSize(b) {
+  if (b < 1024) return b + ' B'
+  if (b < 1048576) return (b / 1024).toFixed(1) + ' KB'
+  return (b / 1048576).toFixed(1) + ' MB'
+}
+
 const STATUS_LABEL = { TODO: 'לביצוע', IN_PROGRESS: 'בתהליך', DONE: 'הושלם' }
 const STATUS_BADGE = { TODO: 'badge-todo', IN_PROGRESS: 'badge-in-progress', DONE: 'badge-done' }
 const PRIORITY_LABEL = { HIGH: 'גבוהה', MEDIUM: 'בינונית', LOW: 'נמוכה' }
@@ -33,27 +48,57 @@ export default function ProjectDetailPage() {
   const [deleteTaskId, setDeleteTaskId] = useState(null)
   const [selectedTask, setSelectedTask] = useState(null)
   const [detailOpen, setDetailOpen] = useState(false)
+  const [projectFiles, setProjectFiles] = useState([])
+  const [uploadingFiles, setUploadingFiles] = useState(false)
+  const [templates, setTemplates] = useState([])
+  const projectFileRef = useRef(null)
 
   useEffect(() => { loadAll() }, [id])
 
   async function loadAll() {
     setLoading(true)
     try {
-      const [projects, tasksData, usersData] = await Promise.all([
+      const [projects, tasksData, usersData, filesData, templatesData] = await Promise.all([
         api.getProjects(),
         api.getTasks({ projectId: id }),
         api.getUsers(),
+        api.getProjectFiles(id),
+        api.getTemplates(),
       ])
       const found = projects.find(p => p.id === parseInt(id))
       if (!found) { toast.error('שגיאה', 'פרויקט לא נמצא'); navigate('/projects'); return }
       setProject(found)
       setTasks(tasksData)
       setUsers(usersData)
+      setProjectFiles(filesData)
+      setTemplates(templatesData)
     } catch {
       toast.error('שגיאה', 'לא ניתן לטעון פרויקט')
     } finally {
       setLoading(false)
     }
+  }
+
+  async function handleProjectFileUpload(e) {
+    const files = Array.from(e.target.files)
+    if (!files.length) return
+    setUploadingFiles(true)
+    try {
+      const fd = new FormData()
+      files.forEach(f => fd.append('files', f))
+      const created = await api.uploadProjectFiles(id, fd)
+      setProjectFiles(prev => [...created, ...prev])
+      toast.success('הועלו', `${files.length} קבצים הועלו בהצלחה`)
+    } catch (err) { toast.error('שגיאה', err.message) }
+    finally { setUploadingFiles(false); e.target.value = '' }
+  }
+
+  async function handleDeleteProjectFile(fileId) {
+    try {
+      await api.deleteProjectFile(id, fileId)
+      setProjectFiles(prev => prev.filter(f => f.id !== fileId))
+      toast.success('נמחק')
+    } catch (err) { toast.error('שגיאה', err.message) }
   }
 
   // Unique team members from assigned tasks
@@ -267,6 +312,64 @@ export default function ProjectDetailPage() {
             </div>
           </div>
 
+          {/* Project Files */}
+          <div className="card" style={{ marginTop: 16 }}>
+            <div className="card-header">
+              <div className="card-title">📂 קבצי פרויקט</div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <span style={{ fontSize: 11, color: 'var(--text-secondary)' }}>{projectFiles.length} קבצים</span>
+                <button
+                  className="btn btn-primary btn-sm"
+                  onClick={() => projectFileRef.current?.click()}
+                  disabled={uploadingFiles}
+                >
+                  {uploadingFiles ? '⏳' : '＋ העלה'}
+                </button>
+                <input ref={projectFileRef} type="file" multiple style={{ display: 'none' }} onChange={handleProjectFileUpload} />
+              </div>
+            </div>
+            <div style={{ padding: '8px 12px 12px' }}>
+              {projectFiles.length === 0 ? (
+                <div
+                  className="file-drop-zone"
+                  style={{ padding: '20px 12px' }}
+                  onClick={() => projectFileRef.current?.click()}
+                >
+                  <div style={{ fontSize: 28, marginBottom: 6 }}>📂</div>
+                  <div style={{ fontSize: 12, color: 'var(--text-secondary)' }}>לחץ להעלאת קבצים משותפים</div>
+                </div>
+              ) : (
+                projectFiles.map(f => (
+                  <div key={f.id} className="file-item" style={{ marginBottom: 6 }}>
+                    <span style={{ fontSize: 20 }}>{fileIcon(f.mimetype, f.originalName)}</span>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <a
+                        href={`/uploads/${f.filename}`}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="file-name"
+                        style={{ display: 'block', color: 'var(--primary)', fontSize: 12 }}
+                      >
+                        {f.originalName}
+                      </a>
+                      <div style={{ fontSize: 10, color: 'var(--text-light)' }}>
+                        {formatSize(f.size)} · {f.uploadedBy?.name}
+                      </div>
+                    </div>
+                    {(isAdmin || f.uploadedById === user?.id) && (
+                      <button
+                        className="btn btn-ghost btn-icon btn-sm"
+                        onClick={() => handleDeleteProjectFile(f.id)}
+                        title="מחק"
+                        style={{ fontSize: 14 }}
+                      >🗑️</button>
+                    )}
+                  </div>
+                ))
+              )}
+            </div>
+          </div>
+
           {/* Mini task breakdown per member */}
           {teamMembers.length > 0 && (
             <div className="card" style={{ marginTop: 16 }}>
@@ -323,6 +426,7 @@ export default function ProjectDetailPage() {
         currentUser={user}
         onSaved={handleTaskSaved}
         toast={toast}
+        templates={templates}
       />
 
       {/* Task Detail Modal */}
@@ -425,17 +529,18 @@ function TaskRow({ task, projectColor, isAdmin, currentUserId, onOpen, onEdit, o
 }
 
 /* ── Task Form Modal ── */
-function TaskFormModal({ isOpen, onClose, editTask, projectId, projectName, users, isAdmin, currentUser, onSaved, toast }) {
+function TaskFormModal({ isOpen, onClose, editTask, projectId, projectName, users, isAdmin, currentUser, onSaved, toast, templates = [] }) {
   const [form, setForm] = useState({ title: '', description: '', priority: 'MEDIUM', status: 'TODO', dueDate: '', assigneeId: '' })
   const [aiLoading, setAiLoading] = useState(false)
   const [saving, setSaving] = useState(false)
   const [pendingFiles, setPendingFiles] = useState([])
   const [existingAtts, setExistingAtts] = useState([])
   const [deletingAtt, setDeletingAtt] = useState(null)
+  const [selectedTemplate, setSelectedTemplate] = useState('')
   const fileInputRef = useRef(null)
 
   useEffect(() => {
-    if (!isOpen) { setPendingFiles([]); setExistingAtts([]); return }
+    if (!isOpen) { setPendingFiles([]); setExistingAtts([]); setSelectedTemplate(''); return }
     if (editTask) {
       setForm({
         title: editTask.title || '',
@@ -451,7 +556,20 @@ function TaskFormModal({ isOpen, onClose, editTask, projectId, projectName, user
       setExistingAtts([])
     }
     setPendingFiles([])
+    setSelectedTemplate('')
   }, [isOpen, editTask])
+
+  function applyTemplate(templateId) {
+    const t = templates.find(t => t.id === parseInt(templateId))
+    if (!t) return
+    setSelectedTemplate(templateId)
+    setForm(f => ({
+      ...f,
+      title: f.title || t.name,
+      description: t.description || f.description,
+      priority: t.priority || f.priority
+    }))
+  }
 
   async function handleAI() {
     if (!form.title) { toast.warning('שים לב', 'נדרשת כותרת'); return }
@@ -530,6 +648,28 @@ function TaskFormModal({ isOpen, onClose, editTask, projectId, projectName, user
         </>
       }
     >
+      {!editTask && templates.length > 0 && (
+        <div className="form-group" style={{
+          background: 'linear-gradient(135deg, #ede9fe, #e0e7ff)',
+          borderRadius: 'var(--radius)', padding: '12px 14px',
+          border: '1px solid #c7d2fe', marginBottom: 16
+        }}>
+          <label className="form-label" style={{ fontSize: 12, marginBottom: 6, color: 'var(--primary)' }}>
+            📋 התחל מתבנית
+          </label>
+          <select
+            className="form-control"
+            value={selectedTemplate}
+            onChange={e => applyTemplate(e.target.value)}
+            style={{ borderColor: 'var(--primary)' }}
+          >
+            <option value="">— בחר תבנית —</option>
+            {templates.map(t => (
+              <option key={t.id} value={t.id}>{t.name}</option>
+            ))}
+          </select>
+        </div>
+      )}
       <div className="form-group">
         <label className="form-label">כותרת <span className="required">*</span></label>
         <input className="form-control" value={form.title} onChange={e => setForm(f => ({ ...f, title: e.target.value }))} placeholder="שם המשימה" autoFocus />

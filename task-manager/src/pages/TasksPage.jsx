@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import { api } from '../api/client'
 import { useToast } from '../context/ToastContext'
 import { useAuth } from '../context/AuthContext'
@@ -32,11 +33,19 @@ function isOverdue(task) {
 }
 
 export default function TasksPage() {
+  const [searchParams] = useSearchParams()
   const [tasks, setTasks] = useState([])
   const [projects, setProjects] = useState([])
   const [users, setUsers] = useState([])
   const [loading, setLoading] = useState(true)
-  const [filters, setFilters] = useState({ status: '', priority: '', assigneeId: '', projectId: '', search: '' })
+  const [filters, setFilters] = useState({
+    status: searchParams.get('status') || '',
+    priority: '',
+    assigneeId: '',
+    projectId: '',
+    search: '',
+    overdue: searchParams.get('overdue') || ''
+  })
   const [modalOpen, setModalOpen] = useState(false)
   const [detailTask, setDetailTask] = useState(null)
   const [detailOpen, setDetailOpen] = useState(false)
@@ -76,6 +85,7 @@ export default function TasksPage() {
     if (filters.assigneeId) params.assigneeId = filters.assigneeId
     if (filters.projectId) params.projectId = filters.projectId
     if (filters.search) params.search = filters.search
+    if (filters.overdue) params.overdue = filters.overdue
     const data = await api.getTasks(params)
     setTasks(data)
   }

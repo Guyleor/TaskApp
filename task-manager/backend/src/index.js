@@ -11,6 +11,7 @@ import userRoutes from './routes/users.js'
 import commentRoutes from './routes/comments.js'
 import attachmentRoutes from './routes/attachments.js'
 import aiRoutes from './routes/ai.js'
+import templateRoutes from './routes/templates.js'
 
 dotenv.config()
 
@@ -39,6 +40,7 @@ app.use('/api/users', userRoutes)
 app.use('/api/comments', commentRoutes)
 app.use('/api/attachments', attachmentRoutes)
 app.use('/api/ai', aiRoutes)
+app.use('/api/templates', templateRoutes)
 
 app.get('/api/health', (req, res) => res.json({ status: 'ok', time: new Date() }))
 
