@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom'
 import { api } from '../api/client'
 import { useToast } from '../context/ToastContext'
 import { useAuth } from '../context/AuthContext'
+import { useLanguage } from '../context/LanguageContext'
 import Modal, { ConfirmModal } from '../components/common/Modal'
 
 function fileIcon(mimetype = '', name = '') {
@@ -20,11 +21,6 @@ function formatSize(b) {
   return (b / 1048576).toFixed(1) + ' MB'
 }
 
-const STATUS_LABEL = { TODO: 'לביצוע', IN_PROGRESS: 'בתהליך', DONE: 'הושלם' }
-const STATUS_BADGE = { TODO: 'badge-todo', IN_PROGRESS: 'badge-in-progress', DONE: 'badge-done' }
-const PRIORITY_LABEL = { HIGH: 'גבוהה', MEDIUM: 'בינונית', LOW: 'נמוכה' }
-const PRIORITY_BADGE = { HIGH: 'badge-high', MEDIUM: 'badge-medium', LOW: 'badge-low' }
-
 function toInputDate(d) {
   if (!d) return ''
   return new Date(d).toISOString().split('T')[0]
@@ -35,6 +31,7 @@ export default function ProjectDetailPage() {
   const navigate = useNavigate()
   const toast = useToast()
   const { user } = useAuth()
+  const { t } = useLanguage()
   const isAdmin = user?.role === 'ADMIN'
 
   const [project, setProject] = useState(null)
@@ -66,14 +63,14 @@ export default function ProjectDetailPage() {
         api.getTemplates(),
       ])
       const found = projects.find(p => p.id === parseInt(id))
-      if (!found) { toast.error('שגיאה', 'פרויקט לא נמצא'); navigate('/projects'); return }
+      if (!found) { toast.error(t.common.error, t.common.serverError); navigate('/projects'); return }
       setProject(found)
       setTasks(tasksData)
       setUsers(usersData)
       setProjectFiles(filesData)
       setTemplates(templatesData)
     } catch {
-      toast.error('שגיאה', 'לא ניתן לטעון פרויקט')
+      toast.error(t.common.error, t.common.serverError)
     } finally {
       setLoading(false)
     }
@@ -88,8 +85,8 @@ export default function ProjectDetailPage() {
       files.forEach(f => fd.append('files', f))
       const created = await api.uploadProjectFiles(id, fd)
       setProjectFiles(prev => [...created, ...prev])
-      toast.success('הועלו', `${files.length} קבצים הועלו בהצלחה`)
-    } catch (err) { toast.error('שגיאה', err.message) }
+      toast.success(t.common.success)
+    } catch (err) { toast.error(t.common.error, err.message) }
     finally { setUploadingFiles(false); e.target.value = '' }
   }
 
@@ -97,14 +94,14 @@ export default function ProjectDetailPage() {
     try {
       await api.deleteProjectFile(id, fileId)
       setProjectFiles(prev => prev.filter(f => f.id !== fileId))
-      toast.success('נמחק')
-    } catch (err) { toast.error('שגיאה', err.message) }
+      toast.success(t.common.success)
+    } catch (err) { toast.error(t.common.error, err.message) }
   }
 
   // Unique team members from assigned tasks
   const teamMembers = Object.values(
-    tasks.reduce((acc, t) => {
-      if (t.assignee) acc[t.assignee.id] = t.assignee
+    tasks.reduce((acc, task) => {
+      if (task.assignee) acc[task.assignee.id] = task.assignee
       return acc
     }, {})
   )
@@ -119,7 +116,7 @@ export default function ProjectDetailPage() {
   }
   const progress = stats.total > 0 ? Math.round((stats.done / stats.total) * 100) : 0
 
-  const filteredTasks = taskFilter === 'ALL' ? tasks : tasks.filter(t => t.status === taskFilter)
+  const filteredTasks = taskFilter === 'ALL' ? tasks : tasks.filter(task => task.status === taskFilter)
 
   async function handleTaskSaved(task, isEdit) {
     if (isEdit) {
@@ -128,15 +125,15 @@ export default function ProjectDetailPage() {
       setTasks(ts => [task, ...ts])
     }
     setTaskModalOpen(false)
-    toast.success(isEdit ? 'עודכן' : 'נוצר', `"${task.title}" ${isEdit ? 'עודכנה' : 'נוצרה'}`)
+    toast.success(t.common.success, `"${task.title}"`)
   }
 
   async function handleDeleteTask() {
     try {
       await api.deleteTask(deleteTaskId)
       setTasks(ts => ts.filter(t => t.id !== deleteTaskId))
-      toast.success('נמחק')
-    } catch (err) { toast.error('שגיאה', err.message) }
+      toast.success(t.common.success)
+    } catch (err) { toast.error(t.common.error, err.message) }
   }
 
   async function quickStatus(task, status, e) {
@@ -158,8 +155,8 @@ export default function ProjectDetailPage() {
     <div>
       {/* Back + Header */}
       <div style={{ display: 'flex', alignItems: 'flex-start', gap: 16, marginBottom: 24 }}>
-        <button className="btn btn-ghost btn-icon" onClick={() => navigate('/projects')} title="חזרה לפרויקטים">
-          ‹
+        <button className="btn btn-ghost btn-icon" onClick={() => navigate('/projects')}>
+          {t.projectDetail.back}
         </button>
         <div style={{ flex: 1 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 4 }}>
@@ -181,7 +178,7 @@ export default function ProjectDetailPage() {
         </div>
         {isAdmin && (
           <button className="btn btn-primary" onClick={() => { setEditTask(null); setTaskModalOpen(true) }}>
-            ＋ משימה חדשה
+            {t.projectDetail.newTask}
           </button>
         )}
       </div>
@@ -189,11 +186,11 @@ export default function ProjectDetailPage() {
       {/* Stats row */}
       <div className="stats-grid" style={{ marginBottom: 20 }}>
         {[
-          { icon: '📋', label: 'סה״כ משימות', value: stats.total, color: project.color, bg: project.color + '20' },
-          { icon: '✅', label: 'הושלמו', value: stats.done, color: '#10b981', bg: '#d1fae5' },
-          { icon: '⚡', label: 'בתהליך', value: stats.inProgress, color: '#3b82f6', bg: '#dbeafe' },
-          { icon: '📌', label: 'לביצוע', value: stats.todo, color: '#f59e0b', bg: '#fef3c7' },
-          { icon: '⏰', label: 'באיחור', value: stats.overdue, color: '#ef4444', bg: '#fee2e2' },
+          { icon: '📋', label: t.projectDetail.total, value: stats.total, color: project.color, bg: project.color + '20' },
+          { icon: '✅', label: t.projectDetail.done, value: stats.done, color: '#10b981', bg: '#d1fae5' },
+          { icon: '⚡', label: t.projectDetail.inProgress, value: stats.inProgress, color: '#3b82f6', bg: '#dbeafe' },
+          { icon: '📌', label: t.projectDetail.todo, value: stats.todo, color: '#f59e0b', bg: '#fef3c7' },
+          { icon: '⏰', label: t.projectDetail.overdue, value: stats.overdue, color: '#ef4444', bg: '#fee2e2' },
         ].map(s => (
           <div className="stat-card" key={s.label}>
             <div className="stat-icon" style={{ background: s.bg, color: s.color }}>{s.icon}</div>
@@ -212,7 +209,7 @@ export default function ProjectDetailPage() {
           <div className="card" style={{ marginBottom: 16 }}>
             <div style={{ padding: '16px 20px' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
-                <span style={{ fontWeight: 700, fontSize: 14 }}>התקדמות פרויקט</span>
+                <span style={{ fontWeight: 700, fontSize: 14 }}>{t.projectDetail.projectProgress}</span>
                 <span style={{ fontWeight: 800, fontSize: 18, color: project.color }}>{progress}%</span>
               </div>
               <div className="progress-bar-track" style={{ height: 12 }}>
@@ -224,10 +221,10 @@ export default function ProjectDetailPage() {
           {/* Filter tabs */}
           <div style={{ display: 'flex', gap: 8, marginBottom: 14 }}>
             {[
-              { key: 'ALL', label: `הכל (${stats.total})` },
-              { key: 'TODO', label: `לביצוע (${stats.todo})` },
-              { key: 'IN_PROGRESS', label: `בתהליך (${stats.inProgress})` },
-              { key: 'DONE', label: `הושלם (${stats.done})` },
+              { key: 'ALL', label: `${t.projectDetail.filterAll} (${stats.total})` },
+              { key: 'TODO', label: `${t.projectDetail.filterTodo} (${stats.todo})` },
+              { key: 'IN_PROGRESS', label: `${t.projectDetail.filterInProgress} (${stats.inProgress})` },
+              { key: 'DONE', label: `${t.projectDetail.filterDone} (${stats.done})` },
             ].map(f => (
               <button
                 key={f.key}
@@ -243,10 +240,10 @@ export default function ProjectDetailPage() {
           {filteredTasks.length === 0 ? (
             <div className="empty-state" style={{ padding: '40px 24px' }}>
               <div className="empty-icon">📋</div>
-              <h3>אין משימות</h3>
+              <h3>{t.projectDetail.noTasks}</h3>
               {isAdmin && (
                 <button className="btn btn-primary" onClick={() => setTaskModalOpen(true)}>
-                  ＋ משימה חדשה
+                  {t.projectDetail.newTask}
                 </button>
               )}
             </div>
@@ -267,11 +264,11 @@ export default function ProjectDetailPage() {
           )}
         </div>
 
-        {/* Sidebar: Team */}
+        {/* Sidebar */}
         <div>
           <div className="card">
             <div className="card-header">
-              <div className="card-title">👥 צוות הפרויקט</div>
+              <div className="card-title">{t.projectDetail.team}</div>
               <span style={{
                 background: project.color + '20', color: project.color,
                 borderRadius: 20, padding: '2px 10px',
@@ -281,11 +278,11 @@ export default function ProjectDetailPage() {
             <div style={{ padding: '8px 16px 16px' }}>
               {teamMembers.length === 0 ? (
                 <p style={{ color: 'var(--text-light)', fontSize: 13, textAlign: 'center', padding: '16px 0' }}>
-                  אין עובדים מוקצים עדיין
+                  {t.projectDetail.noTeam}
                 </p>
               ) : teamMembers.map(m => {
-                const memberTasks = tasks.filter(t => t.assigneeId === m.id)
-                const memberDone = memberTasks.filter(t => t.status === 'DONE').length
+                const memberTasks = tasks.filter(task => task.assigneeId === m.id)
+                const memberDone = memberTasks.filter(task => task.status === 'DONE').length
                 const memberPct = memberTasks.length > 0 ? Math.round((memberDone / memberTasks.length) * 100) : 0
                 return (
                   <div key={m.id} style={{
@@ -299,7 +296,7 @@ export default function ProjectDetailPage() {
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <div style={{ fontWeight: 600, fontSize: 13, marginBottom: 4 }}>{m.name}</div>
                       <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11, color: 'var(--text-secondary)', marginBottom: 4 }}>
-                        <span>{memberTasks.length} משימות</span>
+                        <span>{memberTasks.length} {t.projectDetail.taskCount}</span>
                         <span style={{ color: project.color, fontWeight: 700 }}>{memberPct}%</span>
                       </div>
                       <div className="progress-bar-track" style={{ height: 5 }}>
@@ -315,15 +312,15 @@ export default function ProjectDetailPage() {
           {/* Project Files */}
           <div className="card" style={{ marginTop: 16 }}>
             <div className="card-header">
-              <div className="card-title">📂 קבצי פרויקט</div>
+              <div className="card-title">{t.projectDetail.projectFiles}</div>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                <span style={{ fontSize: 11, color: 'var(--text-secondary)' }}>{projectFiles.length} קבצים</span>
+                <span style={{ fontSize: 11, color: 'var(--text-secondary)' }}>{projectFiles.length} {t.projectDetail.files}</span>
                 <button
                   className="btn btn-primary btn-sm"
                   onClick={() => projectFileRef.current?.click()}
                   disabled={uploadingFiles}
                 >
-                  {uploadingFiles ? '⏳' : '＋ העלה'}
+                  {uploadingFiles ? t.projectDetail.uploading : t.projectDetail.uploadBtn}
                 </button>
                 <input ref={projectFileRef} type="file" multiple style={{ display: 'none' }} onChange={handleProjectFileUpload} />
               </div>
@@ -336,7 +333,7 @@ export default function ProjectDetailPage() {
                   onClick={() => projectFileRef.current?.click()}
                 >
                   <div style={{ fontSize: 28, marginBottom: 6 }}>📂</div>
-                  <div style={{ fontSize: 12, color: 'var(--text-secondary)' }}>לחץ להעלאת קבצים משותפים</div>
+                  <div style={{ fontSize: 12, color: 'var(--text-secondary)' }}>{t.projectDetail.clickToUpload}</div>
                 </div>
               ) : (
                 projectFiles.map(f => (
@@ -360,7 +357,6 @@ export default function ProjectDetailPage() {
                       <button
                         className="btn btn-ghost btn-icon btn-sm"
                         onClick={() => handleDeleteProjectFile(f.id)}
-                        title="מחק"
                         style={{ fontSize: 14 }}
                       >🗑️</button>
                     )}
@@ -374,11 +370,11 @@ export default function ProjectDetailPage() {
           {teamMembers.length > 0 && (
             <div className="card" style={{ marginTop: 16 }}>
               <div className="card-header">
-                <div className="card-title">📊 פירוט משימות</div>
+                <div className="card-title">{t.projectDetail.taskBreakdown}</div>
               </div>
               <div style={{ padding: '8px 16px 16px' }}>
                 {teamMembers.map(m => {
-                  const mt = tasks.filter(t => t.assigneeId === m.id)
+                  const mt = tasks.filter(task => task.assigneeId === m.id)
                   return (
                     <div key={m.id} style={{ marginBottom: 14 }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
@@ -387,11 +383,11 @@ export default function ProjectDetailPage() {
                       </div>
                       <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', paddingRight: 4 }}>
                         {[
-                          { key: 'TODO', color: '#f59e0b', bg: '#fef3c7', label: 'לביצוע' },
-                          { key: 'IN_PROGRESS', color: '#3b82f6', bg: '#dbeafe', label: 'בתהליך' },
-                          { key: 'DONE', color: '#10b981', bg: '#d1fae5', label: 'הושלם' },
+                          { key: 'TODO', color: '#f59e0b', bg: '#fef3c7', label: t.projectDetail.filterTodo },
+                          { key: 'IN_PROGRESS', color: '#3b82f6', bg: '#dbeafe', label: t.projectDetail.filterInProgress },
+                          { key: 'DONE', color: '#10b981', bg: '#d1fae5', label: t.projectDetail.filterDone },
                         ].map(s => {
-                          const cnt = mt.filter(t => t.status === s.key).length
+                          const cnt = mt.filter(task => task.status === s.key).length
                           if (cnt === 0) return null
                           return (
                             <span key={s.key} style={{
@@ -403,7 +399,7 @@ export default function ProjectDetailPage() {
                             </span>
                           )
                         })}
-                        {mt.length === 0 && <span style={{ color: 'var(--text-light)', fontSize: 12 }}>אין משימות</span>}
+                        {mt.length === 0 && <span style={{ color: 'var(--text-light)', fontSize: 12 }}>{t.common.noData}</span>}
                       </div>
                     </div>
                   )
@@ -438,7 +434,7 @@ export default function ProjectDetailPage() {
           setTask={setSelectedTask}
           isAdmin={isAdmin}
           currentUser={user}
-          onEdit={t => { setDetailOpen(false); setEditTask(t); setTaskModalOpen(true) }}
+          onEdit={task => { setDetailOpen(false); setEditTask(task); setTaskModalOpen(true) }}
           toast={toast}
         />
       )}
@@ -447,8 +443,8 @@ export default function ProjectDetailPage() {
         isOpen={!!deleteTaskId}
         onClose={() => setDeleteTaskId(null)}
         onConfirm={handleDeleteTask}
-        title="מחיקת משימה"
-        message="האם אתה בטוח שברצונך למחוק משימה זו?"
+        title={t.tasks.deleteTask}
+        message={t.tasks.deleteConfirm}
       />
     </div>
   )
@@ -456,6 +452,11 @@ export default function ProjectDetailPage() {
 
 /* ── Task Row ── */
 function TaskRow({ task, projectColor, isAdmin, currentUserId, onOpen, onEdit, onDelete, onStatus }) {
+  const { t } = useLanguage()
+  const statusLabel = { TODO: t.tasks.todo, IN_PROGRESS: t.tasks.inProgress, DONE: t.tasks.done }
+  const statusBadge = { TODO: 'badge-todo', IN_PROGRESS: 'badge-in-progress', DONE: 'badge-done' }
+  const priorityLabel = { HIGH: t.tasks.high, MEDIUM: t.tasks.medium, LOW: t.tasks.low }
+  const priorityBadge = { HIGH: 'badge-high', MEDIUM: 'badge-medium', LOW: 'badge-low' }
   const overdue = task.dueDate && new Date(task.dueDate) < new Date() && task.status !== 'DONE'
   const daysDiff = task.dueDate ? Math.ceil((new Date(task.dueDate) - new Date()) / 86400000) : null
 
@@ -485,13 +486,13 @@ function TaskRow({ task, projectColor, isAdmin, currentUserId, onOpen, onEdit, o
       </div>
 
       <div className="task-meta">
-        <span className={`badge ${PRIORITY_BADGE[task.priority]}`}>{PRIORITY_LABEL[task.priority]}</span>
-        <span className={`badge ${STATUS_BADGE[task.status]}`}>{STATUS_LABEL[task.status]}</span>
+        <span className={`badge ${priorityBadge[task.priority]}`}>{priorityLabel[task.priority]}</span>
+        <span className={`badge ${statusBadge[task.status]}`}>{statusLabel[task.status]}</span>
 
         {task.dueDate && (
           <span className={`task-due ${overdue ? 'overdue' : daysDiff !== null && daysDiff <= 3 && daysDiff >= 0 ? 'soon' : ''}`}>
-            {overdue ? '⚠️' : '📅'} {new Date(task.dueDate).toLocaleDateString('he-IL')}
-            {overdue && ' (באיחור)'}
+            {overdue ? '⚠️' : '📅'} {new Date(task.dueDate).toLocaleDateString()}
+            {overdue && ` (${t.tasks.overdue})`}
           </span>
         )}
 
@@ -517,10 +518,10 @@ function TaskRow({ task, projectColor, isAdmin, currentUserId, onOpen, onEdit, o
           <button
             key={s}
             className={`btn btn-sm ${task.status === s ? 'btn-primary' : 'btn-secondary'}`}
-            style={{ fontSize: 11, padding: '4px 10px', background: task.status === s ? projectColor : '' , borderColor: task.status === s ? projectColor : '' }}
+            style={{ fontSize: 11, padding: '4px 10px', background: task.status === s ? projectColor : '', borderColor: task.status === s ? projectColor : '' }}
             onClick={e => onStatus(s, e)}
           >
-            {s === 'TODO' ? '📌' : s === 'IN_PROGRESS' ? '⚡' : '✅'} {STATUS_LABEL[s]}
+            {s === 'TODO' ? '📌' : s === 'IN_PROGRESS' ? '⚡' : '✅'} {statusLabel[s]}
           </button>
         ))}
       </div>
@@ -530,6 +531,7 @@ function TaskRow({ task, projectColor, isAdmin, currentUserId, onOpen, onEdit, o
 
 /* ── Task Form Modal ── */
 function TaskFormModal({ isOpen, onClose, editTask, projectId, projectName, users, isAdmin, currentUser, onSaved, toast, templates = [] }) {
+  const { t } = useLanguage()
   const [form, setForm] = useState({ title: '', description: '', priority: 'MEDIUM', status: 'TODO', dueDate: '', assigneeId: '' })
   const [aiLoading, setAiLoading] = useState(false)
   const [saving, setSaving] = useState(false)
@@ -550,7 +552,7 @@ function TaskFormModal({ isOpen, onClose, editTask, projectId, projectName, user
         dueDate: toInputDate(editTask.dueDate),
         assigneeId: editTask.assigneeId?.toString() || ''
       })
-      api.getTask(editTask.id).then(t => setExistingAtts(t.attachments || [])).catch(() => {})
+      api.getTask(editTask.id).then(task => setExistingAtts(task.attachments || [])).catch(() => {})
     } else {
       setForm({ title: '', description: '', priority: 'MEDIUM', status: 'TODO', dueDate: '', assigneeId: '' })
       setExistingAtts([])
@@ -560,25 +562,25 @@ function TaskFormModal({ isOpen, onClose, editTask, projectId, projectName, user
   }, [isOpen, editTask])
 
   function applyTemplate(templateId) {
-    const t = templates.find(t => t.id === parseInt(templateId))
-    if (!t) return
+    const tmpl = templates.find(tmpl => tmpl.id === parseInt(templateId))
+    if (!tmpl) return
     setSelectedTemplate(templateId)
     setForm(f => ({
       ...f,
-      title: f.title || t.name,
-      description: t.description || f.description,
-      priority: t.priority || f.priority
+      title: f.title || tmpl.name,
+      description: tmpl.description || f.description,
+      priority: tmpl.priority || f.priority
     }))
   }
 
   async function handleAI() {
-    if (!form.title) { toast.warning('שים לב', 'נדרשת כותרת'); return }
+    if (!form.title) { toast.warning(t.common.error, t.tasks.taskTitle + ' ' + t.common.required); return }
     setAiLoading(true)
     try {
       const res = await api.generateDescription(form.title, projectName)
       setForm(f => ({ ...f, description: res.description }))
-      toast.success('AI', 'תיאור נוצר!')
-    } catch (err) { toast.error('שגיאת AI', err.message) }
+      toast.success('AI')
+    } catch (err) { toast.error('AI', err.message) }
     finally { setAiLoading(false) }
   }
 
@@ -597,12 +599,12 @@ function TaskFormModal({ isOpen, onClose, editTask, projectId, projectName, user
     try {
       await api.deleteAttachment(attId)
       setExistingAtts(prev => prev.filter(a => a.id !== attId))
-    } catch (err) { toast.error('שגיאה', err.message) }
+    } catch (err) { toast.error(t.common.error, err.message) }
     finally { setDeletingAtt(null) }
   }
 
   async function handleSave() {
-    if (!form.title.trim()) { toast.error('שגיאה', 'כותרת חובה'); return }
+    if (!form.title.trim()) { toast.error(t.common.error, t.tasks.titleRequired); return }
     setSaving(true)
     try {
       const payload = { ...form, projectId, assigneeId: form.assigneeId ? parseInt(form.assigneeId) : null, dueDate: form.dueDate || null }
@@ -614,11 +616,11 @@ function TaskFormModal({ isOpen, onClose, editTask, projectId, projectName, user
         task = await api.getTask(task.id)
       }
       onSaved(task, !!editTask)
-    } catch (err) { toast.error('שגיאה', err.message) }
+    } catch (err) { toast.error(t.common.error, err.message) }
     finally { setSaving(false) }
   }
 
-  function fileIcon(f) {
+  function getFileIcon(f) {
     const type = f.type || f.mimetype || ''
     if (type.includes('image')) return '🖼️'
     if (type.includes('pdf')) return '📄'
@@ -627,7 +629,7 @@ function TaskFormModal({ isOpen, onClose, editTask, projectId, projectName, user
     return '📎'
   }
 
-  function formatSize(b) {
+  function getFormatSize(b) {
     if (b < 1024) return b + ' B'
     if (b < 1048576) return (b / 1024).toFixed(1) + ' KB'
     return (b / 1048576).toFixed(1) + ' MB'
@@ -638,12 +640,12 @@ function TaskFormModal({ isOpen, onClose, editTask, projectId, projectName, user
   return (
     <Modal
       isOpen={isOpen} onClose={onClose}
-      title={editTask ? '✏️ עריכת משימה' : '➕ משימה חדשה'}
+      title={editTask ? t.tasks.editTask : t.tasks.createTask}
       footer={
         <>
-          <button className="btn btn-secondary" onClick={onClose}>ביטול</button>
+          <button className="btn btn-secondary" onClick={onClose}>{t.common.cancel}</button>
           <button className="btn btn-primary" onClick={handleSave} disabled={saving}>
-            {saving ? 'שומר...' : editTask ? 'שמור' : 'צור'}
+            {saving ? '...' : editTask ? t.common.save : t.tasks.newTask}
           </button>
         </>
       }
@@ -655,7 +657,7 @@ function TaskFormModal({ isOpen, onClose, editTask, projectId, projectName, user
           border: '1px solid #c7d2fe', marginBottom: 16
         }}>
           <label className="form-label" style={{ fontSize: 12, marginBottom: 6, color: 'var(--primary)' }}>
-            📋 התחל מתבנית
+            {t.tasks.fromTemplate}
           </label>
           <select
             className="form-control"
@@ -663,54 +665,58 @@ function TaskFormModal({ isOpen, onClose, editTask, projectId, projectName, user
             onChange={e => applyTemplate(e.target.value)}
             style={{ borderColor: 'var(--primary)' }}
           >
-            <option value="">— בחר תבנית —</option>
-            {templates.map(t => (
-              <option key={t.id} value={t.id}>{t.name}</option>
+            <option value="">{t.tasks.selectTemplate}</option>
+            {templates.map(tmpl => (
+              <option key={tmpl.id} value={tmpl.id}>{tmpl.name}</option>
             ))}
           </select>
         </div>
       )}
+
       <div className="form-group">
-        <label className="form-label">כותרת <span className="required">*</span></label>
-        <input className="form-control" value={form.title} onChange={e => setForm(f => ({ ...f, title: e.target.value }))} placeholder="שם המשימה" autoFocus />
+        <label className="form-label">{t.tasks.taskTitle} <span className="required">*</span></label>
+        <input className="form-control" value={form.title} onChange={e => setForm(f => ({ ...f, title: e.target.value }))} autoFocus />
       </div>
+
       <div className="form-group">
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
-          <label className="form-label" style={{ margin: 0 }}>תיאור</label>
+          <label className="form-label" style={{ margin: 0 }}>{t.tasks.description}</label>
           <button className="ai-btn" onClick={handleAI} disabled={aiLoading} type="button">
             {aiLoading ? <span className="spinner">⟳</span> : '✨'} Claude AI
           </button>
         </div>
-        <textarea className="form-control" value={form.description} onChange={e => setForm(f => ({ ...f, description: e.target.value }))} rows={3} placeholder="תיאור..." />
+        <textarea className="form-control" value={form.description} onChange={e => setForm(f => ({ ...f, description: e.target.value }))} rows={3} />
       </div>
+
       <div className="form-row">
         <div className="form-group">
-          <label className="form-label">עדיפות</label>
+          <label className="form-label">{t.tasks.priority}</label>
           <select className="form-control" value={form.priority} onChange={e => setForm(f => ({ ...f, priority: e.target.value }))}>
-            <option value="HIGH">🔴 גבוהה</option>
-            <option value="MEDIUM">🟡 בינונית</option>
-            <option value="LOW">🟢 נמוכה</option>
+            <option value="HIGH">🔴 {t.tasks.high}</option>
+            <option value="MEDIUM">🟡 {t.tasks.medium}</option>
+            <option value="LOW">🟢 {t.tasks.low}</option>
           </select>
         </div>
         <div className="form-group">
-          <label className="form-label">סטטוס</label>
+          <label className="form-label">{t.tasks.status}</label>
           <select className="form-control" value={form.status} onChange={e => setForm(f => ({ ...f, status: e.target.value }))}>
-            <option value="TODO">📌 לביצוע</option>
-            <option value="IN_PROGRESS">⚡ בתהליך</option>
-            <option value="DONE">✅ הושלם</option>
+            <option value="TODO">📌 {t.tasks.todo}</option>
+            <option value="IN_PROGRESS">⚡ {t.tasks.inProgress}</option>
+            <option value="DONE">✅ {t.tasks.done}</option>
           </select>
         </div>
       </div>
+
       <div className="form-row">
         <div className="form-group">
-          <label className="form-label">תאריך יעד</label>
+          <label className="form-label">{t.tasks.dueDate}</label>
           <input type="date" className="form-control" value={form.dueDate} onChange={e => setForm(f => ({ ...f, dueDate: e.target.value }))} />
         </div>
         {isAdmin && (
           <div className="form-group">
-            <label className="form-label">הקצה לעובד</label>
+            <label className="form-label">{t.tasks.assignee}</label>
             <select className="form-control" value={form.assigneeId} onChange={e => setForm(f => ({ ...f, assigneeId: e.target.value }))}>
-              <option value="">לא מוקצה</option>
+              <option value="">{t.tasks.unassigned}</option>
               {users.filter(u => u.role === 'EMPLOYEE').map(u => <option key={u.id} value={u.id}>{u.name}</option>)}
             </select>
           </div>
@@ -721,14 +727,14 @@ function TaskFormModal({ isOpen, onClose, editTask, projectId, projectName, user
       <div className="form-group">
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
           <label className="form-label" style={{ margin: 0 }}>
-            📎 קבצים מצורפים {totalFiles > 0 && <span style={{ color: 'var(--primary)', fontWeight: 700 }}>({totalFiles})</span>}
+            📎 {t.tasks.attachments} {totalFiles > 0 && <span style={{ color: 'var(--primary)', fontWeight: 700 }}>({totalFiles})</span>}
           </label>
           <button
             type="button"
             className="btn btn-secondary btn-sm"
             onClick={() => fileInputRef.current?.click()}
           >
-            ＋ הוסף קבצים
+            {t.common.add}
           </button>
           <input
             ref={fileInputRef}
@@ -740,7 +746,6 @@ function TaskFormModal({ isOpen, onClose, editTask, projectId, projectName, user
           />
         </div>
 
-        {/* Drop zone hint when empty */}
         {totalFiles === 0 && (
           <div
             onClick={() => fileInputRef.current?.click()}
@@ -757,43 +762,38 @@ function TaskFormModal({ isOpen, onClose, editTask, projectId, projectName, user
             onMouseEnter={e => e.currentTarget.style.borderColor = 'var(--primary)'}
             onMouseLeave={e => e.currentTarget.style.borderColor = 'var(--border)'}
           >
-            🖼️ תמונות &nbsp;·&nbsp; 📄 PDF &nbsp;·&nbsp; 📊 Excel &nbsp;·&nbsp; 📎 כל קובץ
-            <div style={{ marginTop: 4, fontSize: 12 }}>לחץ לבחירת קבצים</div>
+            🖼️ &nbsp;·&nbsp; 📄 PDF &nbsp;·&nbsp; 📊 Excel &nbsp;·&nbsp; 📎
           </div>
         )}
 
-        {/* Existing attachments (edit mode) */}
         {existingAtts.map(a => (
           <div key={a.id} className="file-item" style={{ marginBottom: 6 }}>
-            <span style={{ fontSize: 16 }}>{fileIcon(a)}</span>
+            <span style={{ fontSize: 16 }}>{getFileIcon(a)}</span>
             <a href={`/uploads/${a.filename}`} target="_blank" rel="noreferrer"
               className="file-name" style={{ color: 'var(--primary)', flex: 1, fontSize: 13 }}
               onClick={e => e.stopPropagation()}>
               {a.originalName}
             </a>
-            <span className="file-size" style={{ fontSize: 11, color: 'var(--text-light)' }}>{formatSize(a.size)}</span>
+            <span className="file-size" style={{ fontSize: 11, color: 'var(--text-light)' }}>{getFormatSize(a.size)}</span>
             <button
               type="button"
               className="btn btn-ghost btn-icon btn-sm"
               disabled={deletingAtt === a.id}
               onClick={() => handleDeleteExisting(a.id)}
-              title="הסר קובץ"
             >🗑️</button>
           </div>
         ))}
 
-        {/* Pending new files */}
         {pendingFiles.map((f, i) => (
           <div key={i} className="file-item" style={{ marginBottom: 6, background: 'var(--primary)10', border: '1px solid var(--primary)30', borderRadius: 8, padding: '8px 12px' }}>
-            <span style={{ fontSize: 16 }}>{fileIcon(f)}</span>
+            <span style={{ fontSize: 16 }}>{getFileIcon(f)}</span>
             <span style={{ flex: 1, fontSize: 13, fontWeight: 500, color: 'var(--text)' }}>{f.name}</span>
-            <span style={{ fontSize: 11, color: 'var(--text-light)' }}>{formatSize(f.size)}</span>
-            <span style={{ fontSize: 10, background: '#dbeafe', color: '#1d4ed8', borderRadius: 10, padding: '2px 7px', fontWeight: 600 }}>חדש</span>
+            <span style={{ fontSize: 11, color: 'var(--text-light)' }}>{getFormatSize(f.size)}</span>
+            <span style={{ fontSize: 10, background: '#dbeafe', color: '#1d4ed8', borderRadius: 10, padding: '2px 7px', fontWeight: 600 }}>new</span>
             <button
               type="button"
               className="btn btn-ghost btn-icon btn-sm"
               onClick={() => removePending(i)}
-              title="הסר"
             >✕</button>
           </div>
         ))}
@@ -802,14 +802,21 @@ function TaskFormModal({ isOpen, onClose, editTask, projectId, projectName, user
   )
 }
 
-/* ── Task Detail Modal (comments + attachments) ── */
+/* ── Task Detail Modal ── */
 function TaskDetailModal({ isOpen, onClose, task, setTask, isAdmin, currentUser, onEdit, toast }) {
+  const { t } = useLanguage()
   const [comment, setComment] = useState('')
   const [addingComment, setAddingComment] = useState(false)
   const [uploading, setUploading] = useState(false)
-  const fileRef = { current: null }
+  const fileRef = useRef(null)
 
   if (!task) return null
+
+  const statusLabel = { TODO: t.tasks.todo, IN_PROGRESS: t.tasks.inProgress, DONE: t.tasks.done }
+  const statusBadge = { TODO: 'badge-todo', IN_PROGRESS: 'badge-in-progress', DONE: 'badge-done' }
+  const priorityLabel = { HIGH: t.tasks.high, MEDIUM: t.tasks.medium, LOW: t.tasks.low }
+  const priorityBadge = { HIGH: 'badge-high', MEDIUM: 'badge-medium', LOW: 'badge-low' }
+  const overdue = task.dueDate && new Date(task.dueDate) < new Date() && task.status !== 'DONE'
 
   async function handleComment(e) {
     e.preventDefault()
@@ -817,17 +824,17 @@ function TaskDetailModal({ isOpen, onClose, task, setTask, isAdmin, currentUser,
     setAddingComment(true)
     try {
       const c = await api.addComment(task.id, comment)
-      setTask(t => ({ ...t, comments: [...(t.comments || []), c] }))
+      setTask(prev => ({ ...prev, comments: [...(prev.comments || []), c] }))
       setComment('')
-    } catch (err) { toast.error('שגיאה', err.message) }
+    } catch (err) { toast.error(t.common.error, err.message) }
     finally { setAddingComment(false) }
   }
 
   async function handleDeleteComment(cid) {
     try {
       await api.deleteComment(cid)
-      setTask(t => ({ ...t, comments: t.comments.filter(c => c.id !== cid) }))
-    } catch (err) { toast.error('שגיאה', err.message) }
+      setTask(prev => ({ ...prev, comments: prev.comments.filter(c => c.id !== cid) }))
+    } catch (err) { toast.error(t.common.error, err.message) }
   }
 
   async function handleFiles(e) {
@@ -838,51 +845,49 @@ function TaskDetailModal({ isOpen, onClose, task, setTask, isAdmin, currentUser,
       const fd = new FormData()
       Array.from(files).forEach(f => fd.append('files', f))
       const atts = await api.uploadFiles(task.id, fd)
-      setTask(t => ({ ...t, attachments: [...(t.attachments || []), ...atts] }))
-      toast.success('הועלה', `${files.length} קבצים`)
-    } catch (err) { toast.error('שגיאה', err.message) }
+      setTask(prev => ({ ...prev, attachments: [...(prev.attachments || []), ...atts] }))
+      toast.success(t.common.success)
+    } catch (err) { toast.error(t.common.error, err.message) }
     finally { setUploading(false); e.target.value = '' }
   }
 
   async function handleDeleteAtt(aid) {
     try {
       await api.deleteAttachment(aid)
-      setTask(t => ({ ...t, attachments: t.attachments.filter(a => a.id !== aid) }))
-    } catch (err) { toast.error('שגיאה', err.message) }
+      setTask(prev => ({ ...prev, attachments: prev.attachments.filter(a => a.id !== aid) }))
+    } catch (err) { toast.error(t.common.error, err.message) }
   }
 
-  const overdue = task.dueDate && new Date(task.dueDate) < new Date() && task.status !== 'DONE'
-
-  function formatSize(b) {
+  function getFileSizeStr(b) {
     if (b < 1024) return b + ' B'
     if (b < 1048576) return (b / 1024).toFixed(1) + ' KB'
     return (b / 1048576).toFixed(1) + ' MB'
   }
 
-  function fileIcon(m = '') {
+  function getMimeIcon(m = '') {
     if (m.includes('image')) return '🖼️'
     if (m.includes('pdf')) return '📄'
     return '📎'
   }
 
   return (
-    <Modal isOpen={isOpen} onClose={onClose} title="פרטי משימה" size="modal-lg"
+    <Modal isOpen={isOpen} onClose={onClose} title={t.tasks.title} size="modal-lg"
       footer={
         <>
           {(isAdmin || task.assigneeId === currentUser?.id) && (
-            <button className="btn btn-secondary" onClick={() => onEdit(task)}>✏️ עריכה</button>
+            <button className="btn btn-secondary" onClick={() => onEdit(task)}>✏️ {t.common.edit}</button>
           )}
-          <button className="btn btn-primary" onClick={onClose}>סגור</button>
+          <button className="btn btn-primary" onClick={onClose}>{t.common.close}</button>
         </>
       }
     >
       <h3 style={{ fontWeight: 700, fontSize: 17, marginBottom: 10 }}>{task.title}</h3>
       <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 12 }}>
-        <span className={`badge ${PRIORITY_BADGE[task.priority]}`}>{PRIORITY_LABEL[task.priority]}</span>
-        <span className={`badge ${STATUS_BADGE[task.status]}`}>{STATUS_LABEL[task.status]}</span>
+        <span className={`badge ${priorityBadge[task.priority]}`}>{priorityLabel[task.priority]}</span>
+        <span className={`badge ${statusBadge[task.status]}`}>{statusLabel[task.status]}</span>
         {task.dueDate && (
           <span className={`task-due ${overdue ? 'overdue' : ''}`} style={{ fontSize: 13 }}>
-            {overdue ? '⚠️' : '📅'} {new Date(task.dueDate).toLocaleDateString('he-IL')}
+            {overdue ? '⚠️' : '📅'} {new Date(task.dueDate).toLocaleDateString()}
           </span>
         )}
         {task.assignee && (
@@ -901,20 +906,20 @@ function TaskDetailModal({ isOpen, onClose, task, setTask, isAdmin, currentUser,
       {/* Attachments */}
       <div style={{ marginBottom: 16 }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
-          <h4 style={{ fontWeight: 700 }}>📎 קבצים ({task.attachments?.length || 0})</h4>
+          <h4 style={{ fontWeight: 700 }}>📎 {t.tasks.attachments} ({task.attachments?.length || 0})</h4>
           <button className="btn btn-secondary btn-sm" onClick={() => fileRef.current?.click()} disabled={uploading}>
-            {uploading ? '...' : '⬆️ העלה'}
+            {uploading ? '...' : '⬆️'}
           </button>
           <input ref={fileRef} type="file" multiple style={{ display: 'none' }} onChange={handleFiles} />
         </div>
-        {task.attachments?.length === 0 && <p style={{ color: 'var(--text-light)', fontSize: 13 }}>אין קבצים</p>}
+        {task.attachments?.length === 0 && <p style={{ color: 'var(--text-light)', fontSize: 13 }}>{t.common.noData}</p>}
         {task.attachments?.map(a => (
           <div key={a.id} className="file-item">
-            <span style={{ fontSize: 18 }}>{fileIcon(a.mimetype)}</span>
+            <span style={{ fontSize: 18 }}>{getMimeIcon(a.mimetype)}</span>
             <a href={`/uploads/${a.filename}`} target="_blank" rel="noreferrer" className="file-name" style={{ color: 'var(--primary)' }} onClick={e => e.stopPropagation()}>
               {a.originalName}
             </a>
-            <span className="file-size">{formatSize(a.size)}</span>
+            <span className="file-size">{getFileSizeStr(a.size)}</span>
             <button className="btn btn-ghost btn-icon btn-sm" onClick={() => handleDeleteAtt(a.id)}>🗑️</button>
           </div>
         ))}
@@ -922,7 +927,7 @@ function TaskDetailModal({ isOpen, onClose, task, setTask, isAdmin, currentUser,
       <hr className="divider" />
       {/* Comments */}
       <div>
-        <h4 style={{ fontWeight: 700, marginBottom: 10 }}>💬 הערות ({task.comments?.length || 0})</h4>
+        <h4 style={{ fontWeight: 700, marginBottom: 10 }}>💬 {t.tasks.comments} ({task.comments?.length || 0})</h4>
         {task.comments?.map(c => (
           <div key={c.id} style={{ display: 'flex', gap: 10, marginBottom: 10 }}>
             <div className="avatar avatar-sm" style={{ background: c.user.avatarColor, flexShrink: 0 }}>{c.user.name.slice(0, 2)}</div>
@@ -930,7 +935,7 @@ function TaskDetailModal({ isOpen, onClose, task, setTask, isAdmin, currentUser,
               <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 3 }}>
                 <strong style={{ fontSize: 12 }}>{c.user.name}</strong>
                 <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-                  <span style={{ fontSize: 11, color: 'var(--text-light)' }}>{new Date(c.createdAt).toLocaleDateString('he-IL')}</span>
+                  <span style={{ fontSize: 11, color: 'var(--text-light)' }}>{new Date(c.createdAt).toLocaleDateString()}</span>
                   {(isAdmin || c.userId === currentUser?.id) && (
                     <button className="btn btn-ghost btn-sm" style={{ padding: '1px 5px', fontSize: 11 }} onClick={() => handleDeleteComment(c.id)}>✕</button>
                   )}
@@ -941,8 +946,10 @@ function TaskDetailModal({ isOpen, onClose, task, setTask, isAdmin, currentUser,
           </div>
         ))}
         <form onSubmit={handleComment} style={{ display: 'flex', gap: 8, marginTop: 10 }}>
-          <textarea className="form-control" value={comment} onChange={e => setComment(e.target.value)} placeholder="הוסף הערה..." rows={2} style={{ flex: 1 }} />
-          <button type="submit" className="btn btn-primary btn-sm" disabled={addingComment || !comment.trim()} style={{ alignSelf: 'flex-end' }}>שלח</button>
+          <textarea className="form-control" value={comment} onChange={e => setComment(e.target.value)} placeholder={t.tasks.addComment} rows={2} style={{ flex: 1 }} />
+          <button type="submit" className="btn btn-primary btn-sm" disabled={addingComment || !comment.trim()} style={{ alignSelf: 'flex-end' }}>
+            {t.common.add}
+          </button>
         </form>
       </div>
     </Modal>

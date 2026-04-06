@@ -1,18 +1,21 @@
 import { useLocation } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext'
-
-const titles = {
-  '/': { title: 'דשבורד', subtitle: 'סקירה כללית של המשימות' },
-  '/projects': { title: 'פרויקטים', subtitle: 'ניהול פרויקטים' },
-  '/tasks': { title: 'משימות', subtitle: 'כל המשימות' },
-  '/calendar': { title: 'לוח שנה', subtitle: 'תצוגה חודשית' },
-  '/progress': { title: 'התקדמות', subtitle: 'סטטיסטיקות עובדים' },
-  '/users': { title: 'משתמשים', subtitle: 'ניהול משתמשים' },
-}
+import { useLanguage } from '../../context/LanguageContext'
 
 export default function Navbar({ onMobileToggle }) {
   const location = useLocation()
   const { user } = useAuth()
+  const { lang, setLang, t } = useLanguage()
+
+  const titles = {
+    '/': { title: t.nav.dashboard, subtitle: t.dashboard.subtitle },
+    '/projects': { title: t.nav.projects, subtitle: t.projects.subtitle },
+    '/tasks': { title: t.nav.tasks, subtitle: t.tasks.subtitle },
+    '/calendar': { title: t.nav.calendar, subtitle: t.calendar.subtitle },
+    '/progress': { title: t.nav.progress, subtitle: t.progress.subtitle },
+    '/users': { title: t.nav.users, subtitle: t.users.subtitle },
+  }
+
   const pageInfo = titles[location.pathname] || { title: 'TaskManager', subtitle: '' }
 
   function getInitials(name) {
@@ -20,7 +23,9 @@ export default function Navbar({ onMobileToggle }) {
   }
 
   const now = new Date()
-  const dateStr = now.toLocaleDateString('he-IL', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })
+  const dateStr = lang === 'he'
+    ? now.toLocaleDateString('he-IL', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })
+    : now.toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })
 
   return (
     <div className="navbar">
@@ -37,6 +42,21 @@ export default function Navbar({ onMobileToggle }) {
           {dateStr}
         </div>
 
+        {/* Language Toggle */}
+        <button
+          onClick={() => setLang(lang === 'he' ? 'en' : 'he')}
+          style={{
+            display: 'flex', alignItems: 'center', gap: 6,
+            padding: '6px 12px', borderRadius: 'var(--radius)',
+            background: 'var(--bg)', border: '1.5px solid var(--border)',
+            cursor: 'pointer', fontSize: 13, fontWeight: 600,
+            color: 'var(--text)', transition: 'var(--transition)',
+          }}
+          title={lang === 'he' ? 'Switch to English' : 'עבור לעברית'}
+        >
+          {lang === 'he' ? '🇺🇸 EN' : '🇮🇱 עב'}
+        </button>
+
         <div style={{
           display: 'flex', alignItems: 'center', gap: 8,
           padding: '6px 12px',
@@ -44,16 +64,13 @@ export default function Navbar({ onMobileToggle }) {
           borderRadius: 'var(--radius)',
           border: '1px solid var(--border)'
         }}>
-          <div
-            className="avatar avatar-sm"
-            style={{ background: user?.avatarColor || '#6366f1' }}
-          >
+          <div className="avatar avatar-sm" style={{ background: user?.avatarColor || '#6366f1' }}>
             {getInitials(user?.name)}
           </div>
           <div>
             <div style={{ fontSize: 13, fontWeight: 600 }}>{user?.name}</div>
             <div style={{ fontSize: 11, color: 'var(--text-secondary)' }}>
-              {user?.role === 'ADMIN' ? 'מנהל' : 'עובד'}
+              {user?.role === 'ADMIN' ? t.auth.admin : t.auth.employee}
             </div>
           </div>
         </div>

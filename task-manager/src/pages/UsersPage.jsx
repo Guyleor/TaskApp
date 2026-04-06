@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { api } from '../api/client'
 import { useToast } from '../context/ToastContext'
 import { useAuth } from '../context/AuthContext'
+import { useLanguage } from '../context/LanguageContext'
 import Modal, { ConfirmModal } from '../components/common/Modal'
 
 const COLORS = ['#6366f1', '#8b5cf6', '#ec4899', '#ef4444', '#f59e0b', '#10b981', '#06b6d4', '#3b82f6', '#0f172a', '#84cc16']
@@ -16,6 +17,7 @@ export default function UsersPage() {
   const [saving, setSaving] = useState(false)
   const toast = useToast()
   const { user: currentUser } = useAuth()
+  const { t } = useLanguage()
 
   useEffect(() => { loadUsers() }, [])
 
@@ -23,7 +25,7 @@ export default function UsersPage() {
     try {
       const data = await api.getUsers()
       setUsers(data)
-    } catch { toast.error('שגיאה', 'לא ניתן לטעון משתמשים') }
+    } catch { toast.error(t.common.error, t.common.serverError) }
     finally { setLoading(false) }
   }
 
@@ -40,21 +42,21 @@ export default function UsersPage() {
   }
 
   async function handleSave() {
-    if (!form.name || !form.email) { toast.error('שגיאה', 'שם ואימייל חובה'); return }
-    if (!editUser && !form.password) { toast.error('שגיאה', 'סיסמה חובה'); return }
+    if (!form.name || !form.email) { toast.error(t.common.error, t.common.required); return }
+    if (!editUser && !form.password) { toast.error(t.common.error, t.common.required); return }
     setSaving(true)
     try {
       if (editUser) {
         const updated = await api.updateUser(editUser.id, form)
         setUsers(us => us.map(u => u.id === updated.id ? updated : u))
-        toast.success('עודכן', 'המשתמש עודכן')
+        toast.success(t.common.success)
       } else {
         const created = await api.createUser(form)
         setUsers(us => [...us, created])
-        toast.success('נוצר', 'המשתמש נוצר')
+        toast.success(t.common.success)
       }
       setModalOpen(false)
-    } catch (err) { toast.error('שגיאה', err.message) }
+    } catch (err) { toast.error(t.common.error, err.message) }
     finally { setSaving(false) }
   }
 
@@ -62,8 +64,8 @@ export default function UsersPage() {
     try {
       await api.deleteUser(deleteId)
       setUsers(us => us.filter(u => u.id !== deleteId))
-      toast.success('נמחק')
-    } catch (err) { toast.error('שגיאה', err.message) }
+      toast.success(t.common.success)
+    } catch (err) { toast.error(t.common.error, err.message) }
   }
 
   function getInitials(name) {
@@ -76,10 +78,10 @@ export default function UsersPage() {
     <div>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
         <div>
-          <h2 style={{ fontSize: 18, fontWeight: 700 }}>👥 ניהול משתמשים</h2>
-          <p style={{ color: 'var(--text-secondary)', fontSize: 13 }}>{users.length} משתמשים</p>
+          <h2 style={{ fontSize: 18, fontWeight: 700 }}>👥 {t.users.subtitle}</h2>
+          <p style={{ color: 'var(--text-secondary)', fontSize: 13 }}>{users.length} {t.users.count}</p>
         </div>
-        <button className="btn btn-primary" onClick={openCreate}>＋ משתמש חדש</button>
+        <button className="btn btn-primary" onClick={openCreate}>{t.users.newUser}</button>
       </div>
 
       <div className="card">
@@ -87,11 +89,11 @@ export default function UsersPage() {
           <table>
             <thead>
               <tr>
-                <th>משתמש</th>
-                <th>אימייל</th>
-                <th>תפקיד</th>
-                <th>נרשם</th>
-                <th>פעולות</th>
+                <th>{t.users.name}</th>
+                <th>{t.users.email}</th>
+                <th>{t.users.role}</th>
+                <th>{t.users.joined}</th>
+                <th>{t.users.actions}</th>
               </tr>
             </thead>
             <tbody>
@@ -103,7 +105,7 @@ export default function UsersPage() {
                       <div>
                         <div style={{ fontWeight: 600 }}>{u.name}</div>
                         {u.id === currentUser?.id && (
-                          <div style={{ fontSize: 11, color: 'var(--primary)' }}>אתה</div>
+                          <div style={{ fontSize: 11, color: 'var(--primary)' }}>You</div>
                         )}
                       </div>
                     </div>
@@ -111,17 +113,17 @@ export default function UsersPage() {
                   <td style={{ color: 'var(--text-secondary)' }}>{u.email}</td>
                   <td>
                     <span className={`badge badge-${u.role === 'ADMIN' ? 'admin' : 'employee'}`}>
-                      {u.role === 'ADMIN' ? '👑 מנהל' : '👤 עובד'}
+                      {u.role === 'ADMIN' ? `👑 ${t.users.admin}` : `👤 ${t.users.employee}`}
                     </span>
                   </td>
                   <td style={{ color: 'var(--text-secondary)', fontSize: 12 }}>
-                    {new Date(u.createdAt).toLocaleDateString('he-IL')}
+                    {new Date(u.createdAt).toLocaleDateString()}
                   </td>
                   <td>
                     <div style={{ display: 'flex', gap: 4 }}>
-                      <button className="btn btn-ghost btn-icon btn-sm" onClick={() => openEdit(u)} title="עריכה">✏️</button>
+                      <button className="btn btn-ghost btn-icon btn-sm" onClick={() => openEdit(u)}>✏️</button>
                       {u.id !== currentUser?.id && (
-                        <button className="btn btn-ghost btn-icon btn-sm" onClick={() => setDeleteId(u.id)} title="מחיקה">🗑️</button>
+                        <button className="btn btn-ghost btn-icon btn-sm" onClick={() => setDeleteId(u.id)}>🗑️</button>
                       )}
                     </div>
                   </td>
@@ -135,41 +137,41 @@ export default function UsersPage() {
       <Modal
         isOpen={modalOpen}
         onClose={() => setModalOpen(false)}
-        title={editUser ? '✏️ עריכת משתמש' : '➕ משתמש חדש'}
+        title={editUser ? t.users.editUser : t.users.createUser}
         footer={
           <>
-            <button className="btn btn-secondary" onClick={() => setModalOpen(false)}>ביטול</button>
+            <button className="btn btn-secondary" onClick={() => setModalOpen(false)}>{t.common.cancel}</button>
             <button className="btn btn-primary" onClick={handleSave} disabled={saving}>
-              {saving ? '...' : editUser ? 'שמור' : 'צור משתמש'}
+              {saving ? '...' : editUser ? t.common.save : t.users.newUser}
             </button>
           </>
         }
       >
         <div className="form-row">
           <div className="form-group">
-            <label className="form-label">שם מלא <span className="required">*</span></label>
-            <input className="form-control" value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} placeholder="שם מלא" autoFocus />
+            <label className="form-label">{t.users.name} <span className="required">*</span></label>
+            <input className="form-control" value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} autoFocus />
           </div>
           <div className="form-group">
-            <label className="form-label">אימייל <span className="required">*</span></label>
+            <label className="form-label">{t.users.email} <span className="required">*</span></label>
             <input className="form-control" type="email" value={form.email} onChange={e => setForm(f => ({ ...f, email: e.target.value }))} placeholder="email@company.com" />
           </div>
         </div>
         <div className="form-row">
           <div className="form-group">
-            <label className="form-label">סיסמה {editUser ? '' : <span className="required">*</span>}</label>
-            <input className="form-control" type="password" value={form.password} onChange={e => setForm(f => ({ ...f, password: e.target.value }))} placeholder={editUser ? 'השאר ריק לא לשנות' : 'סיסמה חדשה'} />
+            <label className="form-label">{editUser ? t.users.newPassword : t.users.password} {!editUser && <span className="required">*</span>}</label>
+            <input className="form-control" type="password" value={form.password} onChange={e => setForm(f => ({ ...f, password: e.target.value }))} />
           </div>
           <div className="form-group">
-            <label className="form-label">תפקיד</label>
+            <label className="form-label">{t.users.role}</label>
             <select className="form-control" value={form.role} onChange={e => setForm(f => ({ ...f, role: e.target.value }))}>
-              <option value="EMPLOYEE">👤 עובד</option>
-              <option value="ADMIN">👑 מנהל</option>
+              <option value="EMPLOYEE">👤 {t.users.employee}</option>
+              <option value="ADMIN">👑 {t.users.admin}</option>
             </select>
           </div>
         </div>
         <div className="form-group">
-          <label className="form-label">צבע אווטר</label>
+          <label className="form-label">Avatar</label>
           <div className="color-picker">
             {COLORS.map(c => (
               <div
@@ -184,7 +186,6 @@ export default function UsersPage() {
             <div className="avatar avatar-sm" style={{ background: form.avatarColor }}>
               {form.name ? form.name.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase() : 'AB'}
             </div>
-            <span style={{ fontSize: 12, color: 'var(--text-secondary)' }}>תצוגה מקדימה</span>
           </div>
         </div>
       </Modal>
@@ -193,8 +194,8 @@ export default function UsersPage() {
         isOpen={!!deleteId}
         onClose={() => setDeleteId(null)}
         onConfirm={handleDelete}
-        title="מחיקת משתמש"
-        message="האם אתה בטוח שברצונך למחוק משתמש זה? הפעולה אינה ניתנת לביטול."
+        title={t.users.deleteUser}
+        message={t.users.deleteConfirm}
       />
     </div>
   )

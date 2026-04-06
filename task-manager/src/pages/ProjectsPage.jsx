@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { api } from '../api/client'
 import { useToast } from '../context/ToastContext'
 import { useAuth } from '../context/AuthContext'
+import { useLanguage } from '../context/LanguageContext'
 import Modal, { ConfirmModal } from '../components/common/Modal'
 
 const COLORS = ['#6366f1', '#8b5cf6', '#ec4899', '#ef4444', '#f59e0b', '#10b981', '#06b6d4', '#3b82f6', '#0f172a', '#84cc16']
@@ -18,6 +19,7 @@ export default function ProjectsPage() {
   const toast = useToast()
   const navigate = useNavigate()
   const { user } = useAuth()
+  const { t } = useLanguage()
   const isAdmin = user?.role === 'ADMIN'
 
   useEffect(() => { loadProjects() }, [])
@@ -26,7 +28,7 @@ export default function ProjectsPage() {
     try {
       const data = await api.getProjects()
       setProjects(data)
-    } catch { toast.error('שגיאה', 'לא ניתן לטעון פרויקטים') }
+    } catch { toast.error(t.common.error, t.common.serverError) }
     finally { setLoading(false) }
   }
 
@@ -43,20 +45,20 @@ export default function ProjectsPage() {
   }
 
   async function handleSave() {
-    if (!form.name.trim()) { toast.error('שגיאה', 'שם פרויקט חובה'); return }
+    if (!form.name.trim()) { toast.error(t.common.error, t.common.required); return }
     setSaving(true)
     try {
       if (editProject) {
         const updated = await api.updateProject(editProject.id, form)
         setProjects(ps => ps.map(p => p.id === updated.id ? { ...p, ...updated } : p))
-        toast.success('עודכן', 'הפרויקט עודכן בהצלחה')
+        toast.success(t.common.success)
       } else {
         const created = await api.createProject(form)
         setProjects(ps => [{ ...created, taskCount: 0, doneCount: 0 }, ...ps])
-        toast.success('נוצר', 'הפרויקט נוצר בהצלחה')
+        toast.success(t.common.success)
       }
       setModalOpen(false)
-    } catch (err) { toast.error('שגיאה', err.message) }
+    } catch (err) { toast.error(t.common.error, err.message) }
     finally { setSaving(false) }
   }
 
@@ -64,8 +66,8 @@ export default function ProjectsPage() {
     try {
       await api.deleteProject(deleteId)
       setProjects(ps => ps.filter(p => p.id !== deleteId))
-      toast.success('נמחק', 'הפרויקט נמחק')
-    } catch (err) { toast.error('שגיאה', err.message) }
+      toast.success(t.common.success)
+    } catch (err) { toast.error(t.common.error, err.message) }
   }
 
   if (loading) return <div className="loading-spinner" />
@@ -74,12 +76,12 @@ export default function ProjectsPage() {
     <div>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
         <div>
-          <h2 style={{ fontSize: 18, fontWeight: 700 }}>📁 כל הפרויקטים</h2>
-          <p style={{ color: 'var(--text-secondary)', fontSize: 13 }}>{projects.length} פרויקטים</p>
+          <h2 style={{ fontSize: 18, fontWeight: 700 }}>{t.projects.allProjects}</h2>
+          <p style={{ color: 'var(--text-secondary)', fontSize: 13 }}>{projects.length} {t.projects.count}</p>
         </div>
         {isAdmin && (
           <button className="btn btn-primary" onClick={openCreate}>
-            ＋ פרויקט חדש
+            {t.projects.newProject}
           </button>
         )}
       </div>
@@ -87,9 +89,9 @@ export default function ProjectsPage() {
       {projects.length === 0 ? (
         <div className="empty-state">
           <div className="empty-icon">📁</div>
-          <h3>אין פרויקטים עדיין</h3>
-          <p>צור את הפרויקט הראשון שלך</p>
-          {isAdmin && <button className="btn btn-primary" onClick={openCreate}>＋ פרויקט חדש</button>}
+          <h3>{t.projects.noProjects}</h3>
+          <p>{t.projects.createFirst}</p>
+          {isAdmin && <button className="btn btn-primary" onClick={openCreate}>{t.projects.newProject}</button>}
         </div>
       ) : (
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: 16 }}>
@@ -101,47 +103,46 @@ export default function ProjectsPage() {
               onEdit={openEdit}
               onDelete={id => setDeleteId(id)}
               onOpen={() => navigate(`/projects/${project.id}`)}
+              t={t}
             />
           ))}
         </div>
       )}
 
-      {/* Create/Edit Modal */}
       <Modal
         isOpen={modalOpen}
         onClose={() => setModalOpen(false)}
-        title={editProject ? '✏️ עריכת פרויקט' : '➕ פרויקט חדש'}
+        title={editProject ? t.projects.editProject : t.projects.createProject}
         footer={
           <>
-            <button className="btn btn-secondary" onClick={() => setModalOpen(false)}>ביטול</button>
+            <button className="btn btn-secondary" onClick={() => setModalOpen(false)}>{t.common.cancel}</button>
             <button className="btn btn-primary" onClick={handleSave} disabled={saving}>
-              {saving ? '...' : editProject ? 'שמור' : 'צור פרויקט'}
+              {saving ? '...' : editProject ? t.common.save : t.projects.newProject}
             </button>
           </>
         }
       >
         <div className="form-group">
-          <label className="form-label">שם פרויקט <span className="required">*</span></label>
+          <label className="form-label">{t.projects.projectName} <span className="required">*</span></label>
           <input
             className="form-control"
             value={form.name}
             onChange={e => setForm(f => ({ ...f, name: e.target.value }))}
-            placeholder="שם הפרויקט"
+            placeholder={t.projects.projectName}
             autoFocus
           />
         </div>
         <div className="form-group">
-          <label className="form-label">תיאור</label>
+          <label className="form-label">{t.projects.description}</label>
           <textarea
             className="form-control"
             value={form.description}
             onChange={e => setForm(f => ({ ...f, description: e.target.value }))}
-            placeholder="תיאור קצר של הפרויקט..."
             rows={3}
           />
         </div>
         <div className="form-group">
-          <label className="form-label">צבע פרויקט</label>
+          <label className="form-label">{t.projects.color}</label>
           <div className="color-picker">
             {COLORS.map(c => (
               <div
@@ -154,7 +155,6 @@ export default function ProjectsPage() {
           </div>
           <div style={{ marginTop: 10, display: 'flex', alignItems: 'center', gap: 8 }}>
             <div style={{ width: 32, height: 32, borderRadius: 8, background: form.color }} />
-            <span style={{ fontSize: 12, color: 'var(--text-secondary)' }}>צבע נבחר</span>
           </div>
         </div>
       </Modal>
@@ -163,14 +163,14 @@ export default function ProjectsPage() {
         isOpen={!!deleteId}
         onClose={() => setDeleteId(null)}
         onConfirm={handleDelete}
-        title="מחיקת פרויקט"
-        message="האם אתה בטוח שברצונך למחוק פרויקט זה? כל המשימות המשויכות ימחקו גם כן."
+        title={t.projects.deleteProject}
+        message={t.projects.deleteConfirm}
       />
     </div>
   )
 }
 
-function ProjectCard({ project, isAdmin, onEdit, onDelete, onOpen }) {
+function ProjectCard({ project, isAdmin, onEdit, onDelete, onOpen, t }) {
   const progress = project.taskCount > 0 ? Math.round((project.doneCount / project.taskCount) * 100) : 0
 
   return (
@@ -189,14 +189,14 @@ function ProjectCard({ project, isAdmin, onEdit, onDelete, onOpen }) {
             <div>
               <div style={{ fontWeight: 700, fontSize: 15 }}>{project.name}</div>
               <div style={{ fontSize: 12, color: 'var(--text-secondary)' }}>
-                {project.taskCount} משימות
+                {project.taskCount} {t.projects.tasks}
               </div>
             </div>
           </div>
           {isAdmin && (
             <div style={{ display: 'flex', gap: 4 }}>
-              <button className="btn btn-ghost btn-icon btn-sm" onClick={e => { e.stopPropagation(); onEdit(project) }} title="עריכה">✏️</button>
-              <button className="btn btn-ghost btn-icon btn-sm" onClick={e => { e.stopPropagation(); onDelete(project.id) }} title="מחיקה">🗑️</button>
+              <button className="btn btn-ghost btn-icon btn-sm" onClick={e => { e.stopPropagation(); onEdit(project) }}>✏️</button>
+              <button className="btn btn-ghost btn-icon btn-sm" onClick={e => { e.stopPropagation(); onDelete(project.id) }}>🗑️</button>
             </div>
           )}
         </div>
@@ -209,18 +209,15 @@ function ProjectCard({ project, isAdmin, onEdit, onDelete, onOpen }) {
 
         <div style={{ marginTop: 8 }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6, fontSize: 12 }}>
-            <span style={{ color: 'var(--text-secondary)' }}>התקדמות</span>
+            <span style={{ color: 'var(--text-secondary)' }}>{t.projects.progress}</span>
             <span style={{ fontWeight: 700, color: project.color }}>{progress}%</span>
           </div>
           <div className="progress-bar-track">
-            <div
-              className="progress-bar-fill"
-              style={{ width: `${progress}%`, background: project.color }}
-            />
+            <div className="progress-bar-fill" style={{ width: `${progress}%`, background: project.color }} />
           </div>
           <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 8, fontSize: 11, color: 'var(--text-light)' }}>
-            <span>✅ {project.doneCount} הושלמו</span>
-            <span>📌 {project.taskCount - project.doneCount} נותרו</span>
+            <span>✅ {project.doneCount} {t.projects.completed}</span>
+            <span>📌 {project.taskCount - project.doneCount} {t.projects.remaining}</span>
           </div>
         </div>
       </div>

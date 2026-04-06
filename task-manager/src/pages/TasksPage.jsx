@@ -3,24 +3,12 @@ import { useSearchParams } from 'react-router-dom'
 import { api } from '../api/client'
 import { useToast } from '../context/ToastContext'
 import { useAuth } from '../context/AuthContext'
+import { useLanguage } from '../context/LanguageContext'
 import Modal, { ConfirmModal } from '../components/common/Modal'
-
-const PRIORITIES = [
-  { value: '', label: 'כל העדיפויות' },
-  { value: 'HIGH', label: 'גבוהה' },
-  { value: 'MEDIUM', label: 'בינונית' },
-  { value: 'LOW', label: 'נמוכה' },
-]
-const STATUSES = [
-  { value: '', label: 'כל הסטטוסים' },
-  { value: 'TODO', label: 'לביצוע' },
-  { value: 'IN_PROGRESS', label: 'בתהליך' },
-  { value: 'DONE', label: 'הושלם' },
-]
 
 function formatDate(d) {
   if (!d) return ''
-  return new Date(d).toLocaleDateString('he-IL')
+  return new Date(d).toLocaleDateString()
 }
 
 function toInputDate(d) {
@@ -53,8 +41,22 @@ export default function TasksPage() {
   const [deleteId, setDeleteId] = useState(null)
   const toast = useToast()
   const { user } = useAuth()
+  const { t } = useLanguage()
   const isAdmin = user?.role === 'ADMIN'
   const searchTimeout = useRef(null)
+
+  const PRIORITIES = [
+    { value: '', label: t.tasks.allPriorities },
+    { value: 'HIGH', label: t.tasks.high },
+    { value: 'MEDIUM', label: t.tasks.medium },
+    { value: 'LOW', label: t.tasks.low },
+  ]
+  const STATUSES = [
+    { value: '', label: t.tasks.allStatuses },
+    { value: 'TODO', label: t.tasks.todo },
+    { value: 'IN_PROGRESS', label: t.tasks.inProgress },
+    { value: 'DONE', label: t.tasks.done },
+  ]
 
   useEffect(() => { loadInitial() }, [])
 
@@ -74,7 +76,7 @@ export default function TasksPage() {
       setTasks(tasksData)
       setProjects(projectsData)
       setUsers(usersData)
-    } catch { toast.error('שגיאה', 'לא ניתן לטעון נתונים') }
+    } catch { toast.error(t.common.error, t.common.serverError) }
     finally { setLoading(false) }
   }
 
@@ -114,15 +116,15 @@ export default function TasksPage() {
       setTasks(ts => [task, ...ts])
     }
     setModalOpen(false)
-    toast.success(isEdit ? 'עודכן' : 'נוצר', `המשימה "${task.title}" ${isEdit ? 'עודכנה' : 'נוצרה'} בהצלחה`)
+    toast.success(t.common.success, `"${task.title}"`)
   }
 
   async function handleDelete() {
     try {
       await api.deleteTask(deleteId)
       setTasks(ts => ts.filter(t => t.id !== deleteId))
-      toast.success('נמחק', 'המשימה נמחקה')
-    } catch (err) { toast.error('שגיאה', err.message) }
+      toast.success(t.common.success)
+    } catch (err) { toast.error(t.common.error, err.message) }
   }
 
   async function quickStatusChange(task, status, e) {
@@ -138,10 +140,10 @@ export default function TasksPage() {
     <div>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
         <div>
-          <h2 style={{ fontSize: 18, fontWeight: 700 }}>✅ כל המשימות</h2>
-          <p style={{ color: 'var(--text-secondary)', fontSize: 13 }}>{tasks.length} משימות</p>
+          <h2 style={{ fontSize: 18, fontWeight: 700 }}>✅ {t.tasks.subtitle}</h2>
+          <p style={{ color: 'var(--text-secondary)', fontSize: 13 }}>{tasks.length} {t.tasks.count}</p>
         </div>
-        <button className="btn btn-primary" onClick={openCreate}>＋ משימה חדשה</button>
+        <button className="btn btn-primary" onClick={openCreate}>{t.tasks.newTask}</button>
       </div>
 
       {/* Filters */}
@@ -149,7 +151,7 @@ export default function TasksPage() {
         <input
           className="form-control"
           style={{ flex: 1, minWidth: 200, maxWidth: 300 }}
-          placeholder="🔍 חיפוש משימות..."
+          placeholder={t.tasks.searchPlaceholder}
           value={filters.search}
           onChange={e => setFilters(f => ({ ...f, search: e.target.value }))}
         />
@@ -162,18 +164,18 @@ export default function TasksPage() {
         {isAdmin && (
           <>
             <select className="filter-select" value={filters.assigneeId} onChange={e => setFilters(f => ({ ...f, assigneeId: e.target.value }))}>
-              <option value="">כל העובדים</option>
+              <option value="">{t.tasks.allEmployees}</option>
               {users.filter(u => u.role === 'EMPLOYEE').map(u => <option key={u.id} value={u.id}>{u.name}</option>)}
             </select>
             <select className="filter-select" value={filters.projectId} onChange={e => setFilters(f => ({ ...f, projectId: e.target.value }))}>
-              <option value="">כל הפרויקטים</option>
+              <option value="">{t.tasks.allProjects}</option>
               {projects.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
             </select>
           </>
         )}
         {(filters.status || filters.priority || filters.search || filters.assigneeId || filters.projectId) && (
           <button className="btn btn-secondary btn-sm" onClick={() => setFilters({ status: '', priority: '', assigneeId: '', projectId: '', search: '' })}>
-            ✕ נקה
+            {t.tasks.clear}
           </button>
         )}
       </div>
@@ -182,9 +184,8 @@ export default function TasksPage() {
       {tasks.length === 0 ? (
         <div className="empty-state">
           <div className="empty-icon">✅</div>
-          <h3>אין משימות</h3>
-          <p>לא נמצאו משימות תואמות לחיפוש</p>
-          <button className="btn btn-primary" onClick={openCreate}>＋ משימה חדשה</button>
+          <h3>{t.tasks.noTasks}</h3>
+          <button className="btn btn-primary" onClick={openCreate}>{t.tasks.newTask}</button>
         </div>
       ) : (
         <div>
@@ -232,8 +233,8 @@ export default function TasksPage() {
         isOpen={!!deleteId}
         onClose={() => setDeleteId(null)}
         onConfirm={handleDelete}
-        title="מחיקת משימה"
-        message="האם אתה בטוח שברצונך למחוק משימה זו?"
+        title={t.tasks.deleteTask}
+        message={t.tasks.deleteConfirm}
       />
     </div>
   )
@@ -241,11 +242,12 @@ export default function TasksPage() {
 
 /* ── Task Card ── */
 function TaskCard({ task, isAdmin, currentUserId, onOpen, onEdit, onDelete, onStatusChange }) {
+  const { t } = useLanguage()
   const canEdit = isAdmin || task.assigneeId === currentUserId
 
   const priorityColor = { HIGH: 'var(--danger)', MEDIUM: 'var(--warning)', LOW: 'var(--success)' }
-  const priorityLabel = { HIGH: 'גבוהה', MEDIUM: 'בינונית', LOW: 'נמוכה' }
-  const statusLabel = { TODO: 'לביצוע', IN_PROGRESS: 'בתהליך', DONE: 'הושלם' }
+  const priorityLabel = { HIGH: t.tasks.high, MEDIUM: t.tasks.medium, LOW: t.tasks.low }
+  const statusLabel = { TODO: t.tasks.todo, IN_PROGRESS: t.tasks.inProgress, DONE: t.tasks.done }
   const statusBadge = { TODO: 'badge-todo', IN_PROGRESS: 'badge-in-progress', DONE: 'badge-done' }
   const overdue = isOverdue(task)
   const daysDiff = task.dueDate ? Math.ceil((new Date(task.dueDate) - new Date()) / 86400000) : null
@@ -268,8 +270,8 @@ function TaskCard({ task, isAdmin, currentUserId, onOpen, onEdit, onDelete, onSt
         </div>
         {canEdit && (
           <div className="task-actions">
-            <button className="btn btn-ghost btn-icon btn-sm" onClick={onEdit} title="עריכה">✏️</button>
-            {isAdmin && <button className="btn btn-ghost btn-icon btn-sm" onClick={onDelete} title="מחיקה">🗑️</button>}
+            <button className="btn btn-ghost btn-icon btn-sm" onClick={onEdit}>✏️</button>
+            {isAdmin && <button className="btn btn-ghost btn-icon btn-sm" onClick={onDelete}>🗑️</button>}
           </div>
         )}
       </div>
@@ -287,8 +289,8 @@ function TaskCard({ task, isAdmin, currentUserId, onOpen, onEdit, onDelete, onSt
         {task.dueDate && (
           <span className={`task-due ${overdue ? 'overdue' : daysDiff !== null && daysDiff <= 3 ? 'soon' : ''}`}>
             {overdue ? '⚠️' : '📅'} {formatDate(task.dueDate)}
-            {overdue && ' (באיחור)'}
-            {!overdue && daysDiff !== null && daysDiff <= 3 && daysDiff >= 0 && ` (${daysDiff} ימים)`}
+            {overdue && ` (${t.tasks.overdue})`}
+            {!overdue && daysDiff !== null && daysDiff <= 3 && daysDiff >= 0 && ` (${daysDiff}d)`}
           </span>
         )}
 
@@ -328,6 +330,7 @@ function TaskCard({ task, isAdmin, currentUserId, onOpen, onEdit, onDelete, onSt
 
 /* ── Task Form Modal ── */
 function TaskFormModal({ isOpen, onClose, editTask, projects, users, isAdmin, currentUser, onSaved, toast }) {
+  const { t } = useLanguage()
   const [form, setForm] = useState({
     title: '', description: '', priority: 'MEDIUM', status: 'TODO',
     dueDate: '', projectId: '', assigneeId: ''
@@ -354,21 +357,21 @@ function TaskFormModal({ isOpen, onClose, editTask, projects, users, isAdmin, cu
   }, [isOpen, editTask])
 
   async function handleAI() {
-    if (!form.title) { toast.warning('שים לב', 'נדרשת כותרת משימה'); return }
+    if (!form.title) { toast.warning(t.common.error, t.tasks.taskTitle + ' ' + t.common.required); return }
     setAiLoading(true)
     try {
       const project = projects.find(p => p.id === parseInt(form.projectId))
       const result = await api.generateDescription(form.title, project?.name)
       setForm(f => ({ ...f, description: result.description }))
-      toast.success('AI', 'תיאור נוצר בהצלחה!')
+      toast.success('AI')
     } catch (err) {
-      toast.error('שגיאת AI', err.message)
+      toast.error('AI', err.message)
     } finally { setAiLoading(false) }
   }
 
   async function handleSave() {
-    if (!form.title.trim()) { toast.error('שגיאה', 'כותרת חובה'); return }
-    if (!form.projectId) { toast.error('שגיאה', 'יש לבחור פרויקט'); return }
+    if (!form.title.trim()) { toast.error(t.common.error, t.tasks.titleRequired); return }
+    if (!form.projectId) { toast.error(t.common.error, t.common.required); return }
     setSaving(true)
     try {
       const payload = {
@@ -384,7 +387,7 @@ function TaskFormModal({ isOpen, onClose, editTask, projects, users, isAdmin, cu
         task = await api.createTask(payload)
       }
       onSaved(task, !!editTask)
-    } catch (err) { toast.error('שגיאה', err.message) }
+    } catch (err) { toast.error(t.common.error, err.message) }
     finally { setSaving(false) }
   }
 
@@ -392,30 +395,29 @@ function TaskFormModal({ isOpen, onClose, editTask, projects, users, isAdmin, cu
     <Modal
       isOpen={isOpen}
       onClose={onClose}
-      title={editTask ? '✏️ עריכת משימה' : '➕ משימה חדשה'}
+      title={editTask ? t.tasks.editTask : t.tasks.createTask}
       footer={
         <>
-          <button className="btn btn-secondary" onClick={onClose}>ביטול</button>
+          <button className="btn btn-secondary" onClick={onClose}>{t.common.cancel}</button>
           <button className="btn btn-primary" onClick={handleSave} disabled={saving}>
-            {saving ? '...' : editTask ? 'שמור שינויים' : 'צור משימה'}
+            {saving ? '...' : editTask ? t.common.save : t.tasks.newTask}
           </button>
         </>
       }
     >
       <div className="form-group">
-        <label className="form-label">כותרת <span className="required">*</span></label>
+        <label className="form-label">{t.tasks.taskTitle} <span className="required">*</span></label>
         <input
           className="form-control"
           value={form.title}
           onChange={e => setForm(f => ({ ...f, title: e.target.value }))}
-          placeholder="שם המשימה"
           autoFocus
         />
       </div>
 
       <div className="form-group">
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
-          <label className="form-label" style={{ margin: 0 }}>תיאור</label>
+          <label className="form-label" style={{ margin: 0 }}>{t.tasks.description}</label>
           <button className="ai-btn" onClick={handleAI} disabled={aiLoading} type="button">
             {aiLoading ? <span className="spinner">⟳</span> : '✨'} Claude AI
           </button>
@@ -424,40 +426,39 @@ function TaskFormModal({ isOpen, onClose, editTask, projects, users, isAdmin, cu
           className="form-control"
           value={form.description}
           onChange={e => setForm(f => ({ ...f, description: e.target.value }))}
-          placeholder="תיאור המשימה... (לחץ על Claude AI לקבלת עזרה)"
           rows={4}
         />
       </div>
 
       <div className="form-row">
         <div className="form-group">
-          <label className="form-label">עדיפות</label>
+          <label className="form-label">{t.tasks.priority}</label>
           <select className="form-control" value={form.priority} onChange={e => setForm(f => ({ ...f, priority: e.target.value }))}>
-            <option value="HIGH">🔴 גבוהה</option>
-            <option value="MEDIUM">🟡 בינונית</option>
-            <option value="LOW">🟢 נמוכה</option>
+            <option value="HIGH">🔴 {t.tasks.high}</option>
+            <option value="MEDIUM">🟡 {t.tasks.medium}</option>
+            <option value="LOW">🟢 {t.tasks.low}</option>
           </select>
         </div>
         <div className="form-group">
-          <label className="form-label">סטטוס</label>
+          <label className="form-label">{t.tasks.status}</label>
           <select className="form-control" value={form.status} onChange={e => setForm(f => ({ ...f, status: e.target.value }))}>
-            <option value="TODO">📌 לביצוע</option>
-            <option value="IN_PROGRESS">⚡ בתהליך</option>
-            <option value="DONE">✅ הושלם</option>
+            <option value="TODO">📌 {t.tasks.todo}</option>
+            <option value="IN_PROGRESS">⚡ {t.tasks.inProgress}</option>
+            <option value="DONE">✅ {t.tasks.done}</option>
           </select>
         </div>
       </div>
 
       <div className="form-row">
         <div className="form-group">
-          <label className="form-label">פרויקט <span className="required">*</span></label>
+          <label className="form-label">{t.dashboard.project} <span className="required">*</span></label>
           <select className="form-control" value={form.projectId} onChange={e => setForm(f => ({ ...f, projectId: e.target.value }))}>
-            <option value="">בחר פרויקט...</option>
+            <option value=""></option>
             {projects.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
           </select>
         </div>
         <div className="form-group">
-          <label className="form-label">תאריך יעד</label>
+          <label className="form-label">{t.tasks.dueDate}</label>
           <input
             type="date"
             className="form-control"
@@ -469,9 +470,9 @@ function TaskFormModal({ isOpen, onClose, editTask, projects, users, isAdmin, cu
 
       {isAdmin && (
         <div className="form-group">
-          <label className="form-label">הקצה לעובד</label>
+          <label className="form-label">{t.tasks.assignee}</label>
           <select className="form-control" value={form.assigneeId} onChange={e => setForm(f => ({ ...f, assigneeId: e.target.value }))}>
-            <option value="">לא מוקצה</option>
+            <option value="">{t.tasks.unassigned}</option>
             {users.filter(u => u.role === 'EMPLOYEE').map(u => <option key={u.id} value={u.id}>{u.name}</option>)}
           </select>
         </div>
@@ -482,12 +483,18 @@ function TaskFormModal({ isOpen, onClose, editTask, projects, users, isAdmin, cu
 
 /* ── Task Detail Modal ── */
 function TaskDetailModal({ isOpen, onClose, task, setTask, isAdmin, currentUser, onEdit, toast }) {
+  const { t } = useLanguage()
   const [comment, setComment] = useState('')
   const [addingComment, setAddingComment] = useState(false)
   const [uploading, setUploading] = useState(false)
   const fileRef = useRef(null)
 
   if (!task) return null
+
+  const statusLabel = { TODO: t.tasks.todo, IN_PROGRESS: t.tasks.inProgress, DONE: t.tasks.done }
+  const priorityLabel = { HIGH: t.tasks.high, MEDIUM: t.tasks.medium, LOW: t.tasks.low }
+  const overdue = isOverdue(task)
+  const canEdit = isAdmin || task.assigneeId === currentUser?.id
 
   async function handleComment(e) {
     e.preventDefault()
@@ -497,7 +504,7 @@ function TaskDetailModal({ isOpen, onClose, task, setTask, isAdmin, currentUser,
       const newComment = await api.addComment(task.id, comment)
       setTask(t => ({ ...t, comments: [...(t.comments || []), newComment] }))
       setComment('')
-    } catch (err) { toast.error('שגיאה', err.message) }
+    } catch (err) { toast.error(t.common.error, err.message) }
     finally { setAddingComment(false) }
   }
 
@@ -505,7 +512,7 @@ function TaskDetailModal({ isOpen, onClose, task, setTask, isAdmin, currentUser,
     try {
       await api.deleteComment(commentId)
       setTask(t => ({ ...t, comments: t.comments.filter(c => c.id !== commentId) }))
-    } catch (err) { toast.error('שגיאה', err.message) }
+    } catch (err) { toast.error(t.common.error, err.message) }
   }
 
   async function handleFileUpload(e) {
@@ -517,8 +524,8 @@ function TaskDetailModal({ isOpen, onClose, task, setTask, isAdmin, currentUser,
       Array.from(files).forEach(f => fd.append('files', f))
       const atts = await api.uploadFiles(task.id, fd)
       setTask(t => ({ ...t, attachments: [...(t.attachments || []), ...atts] }))
-      toast.success('הועלה', `${files.length} קבצים הועלו`)
-    } catch (err) { toast.error('שגיאה', err.message) }
+      toast.success(t.common.success)
+    } catch (err) { toast.error(t.common.error, err.message) }
     finally { setUploading(false); e.target.value = '' }
   }
 
@@ -526,13 +533,8 @@ function TaskDetailModal({ isOpen, onClose, task, setTask, isAdmin, currentUser,
     try {
       await api.deleteAttachment(id)
       setTask(t => ({ ...t, attachments: t.attachments.filter(a => a.id !== id) }))
-    } catch (err) { toast.error('שגיאה', err.message) }
+    } catch (err) { toast.error(t.common.error, err.message) }
   }
-
-  const statusLabel = { TODO: 'לביצוע', IN_PROGRESS: 'בתהליך', DONE: 'הושלם' }
-  const priorityLabel = { HIGH: 'גבוהה', MEDIUM: 'בינונית', LOW: 'נמוכה' }
-  const overdue = isOverdue(task)
-  const canEdit = isAdmin || task.assigneeId === currentUser?.id
 
   function getFileIcon(mime = '') {
     if (mime.includes('image')) return '🖼️'
@@ -549,11 +551,11 @@ function TaskDetailModal({ isOpen, onClose, task, setTask, isAdmin, currentUser,
   }
 
   return (
-    <Modal isOpen={isOpen} onClose={onClose} title="פרטי משימה" size="modal-lg"
+    <Modal isOpen={isOpen} onClose={onClose} title={t.tasks.title} size="modal-lg"
       footer={
         <>
-          {canEdit && <button className="btn btn-secondary" onClick={() => onEdit(task)}>✏️ עריכה</button>}
-          <button className="btn btn-primary" onClick={onClose}>סגור</button>
+          {canEdit && <button className="btn btn-secondary" onClick={() => onEdit(task)}>✏️ {t.common.edit}</button>}
+          <button className="btn btn-primary" onClick={onClose}>{t.common.close}</button>
         </>
       }
     >
@@ -566,14 +568,14 @@ function TaskDetailModal({ isOpen, onClose, task, setTask, isAdmin, currentUser,
           {task.project && <span className="task-project" style={{ background: task.project.color }}>{task.project.name}</span>}
           {task.dueDate && (
             <span className={`task-due ${overdue ? 'overdue' : ''}`} style={{ fontSize: 13 }}>
-              {overdue ? '⚠️' : '📅'} {formatDate(task.dueDate)}{overdue ? ' (באיחור)' : ''}
+              {overdue ? '⚠️' : '📅'} {formatDate(task.dueDate)}{overdue ? ` (${t.tasks.overdue})` : ''}
             </span>
           )}
         </div>
         {task.assignee && (
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
             <div className="avatar avatar-sm" style={{ background: task.assignee.avatarColor }}>{task.assignee.name.slice(0, 2)}</div>
-            <span style={{ fontSize: 13, color: 'var(--text-secondary)' }}>מוקצה ל: <strong>{task.assignee.name}</strong></span>
+            <span style={{ fontSize: 13, color: 'var(--text-secondary)' }}>{task.assignee.name}</span>
           </div>
         )}
       </div>
@@ -589,13 +591,13 @@ function TaskDetailModal({ isOpen, onClose, task, setTask, isAdmin, currentUser,
       {/* Attachments */}
       <div style={{ marginBottom: 20 }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
-          <h4 style={{ fontWeight: 700 }}>📎 קבצים מצורפים ({task.attachments?.length || 0})</h4>
+          <h4 style={{ fontWeight: 700 }}>📎 {t.tasks.attachments} ({task.attachments?.length || 0})</h4>
           <button className="btn btn-secondary btn-sm" onClick={() => fileRef.current?.click()} disabled={uploading}>
-            {uploading ? '...' : '⬆️ העלה קובץ'}
+            {uploading ? '...' : '⬆️'}
           </button>
           <input ref={fileRef} type="file" multiple style={{ display: 'none' }} onChange={handleFileUpload} />
         </div>
-        {task.attachments?.length === 0 && <p style={{ color: 'var(--text-light)', fontSize: 13 }}>אין קבצים מצורפים</p>}
+        {task.attachments?.length === 0 && <p style={{ color: 'var(--text-light)', fontSize: 13 }}>{t.common.noData}</p>}
         {task.attachments?.map(att => (
           <div key={att.id} className="file-item">
             <span style={{ fontSize: 20 }}>{getFileIcon(att.mimetype)}</span>
@@ -609,9 +611,7 @@ function TaskDetailModal({ isOpen, onClose, task, setTask, isAdmin, currentUser,
               {att.originalName}
             </a>
             <span className="file-size">{formatSize(att.size)}</span>
-            {(isAdmin || true) && (
-              <button className="btn btn-ghost btn-icon btn-sm" onClick={() => handleDeleteAttachment(att.id)}>🗑️</button>
-            )}
+            <button className="btn btn-ghost btn-icon btn-sm" onClick={() => handleDeleteAttachment(att.id)}>🗑️</button>
           </div>
         ))}
       </div>
@@ -620,7 +620,7 @@ function TaskDetailModal({ isOpen, onClose, task, setTask, isAdmin, currentUser,
 
       {/* Comments */}
       <div>
-        <h4 style={{ fontWeight: 700, marginBottom: 12 }}>💬 הערות ({task.comments?.length || 0})</h4>
+        <h4 style={{ fontWeight: 700, marginBottom: 12 }}>💬 {t.tasks.comments} ({task.comments?.length || 0})</h4>
         {task.comments?.map(c => (
           <div key={c.id} style={{ display: 'flex', gap: 10, marginBottom: 12 }}>
             <div className="avatar avatar-sm" style={{ background: c.user.avatarColor, flexShrink: 0 }}>{c.user.name.slice(0, 2)}</div>
@@ -629,7 +629,7 @@ function TaskDetailModal({ isOpen, onClose, task, setTask, isAdmin, currentUser,
                 <strong style={{ fontSize: 13 }}>{c.user.name}</strong>
                 <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
                   <span style={{ fontSize: 11, color: 'var(--text-light)' }}>
-                    {new Date(c.createdAt).toLocaleDateString('he-IL')}
+                    {new Date(c.createdAt).toLocaleDateString()}
                   </span>
                   {(isAdmin || c.userId === currentUser?.id) && (
                     <button className="btn btn-ghost btn-sm" style={{ padding: '2px 6px', fontSize: 12 }} onClick={() => handleDeleteComment(c.id)}>✕</button>
@@ -646,12 +646,12 @@ function TaskDetailModal({ isOpen, onClose, task, setTask, isAdmin, currentUser,
             className="form-control"
             value={comment}
             onChange={e => setComment(e.target.value)}
-            placeholder="הוסף הערה..."
+            placeholder={t.tasks.addComment}
             rows={2}
             style={{ flex: 1 }}
           />
           <button type="submit" className="btn btn-primary btn-sm" disabled={addingComment || !comment.trim()} style={{ alignSelf: 'flex-end' }}>
-            שלח
+            {t.common.add}
           </button>
         </form>
       </div>

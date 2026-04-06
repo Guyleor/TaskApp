@@ -1,9 +1,7 @@
 import { useState, useEffect } from 'react'
 import { api } from '../api/client'
 import { useToast } from '../context/ToastContext'
-
-const HEB_MONTHS = ['ינואר', 'פברואר', 'מרץ', 'אפריל', 'מאי', 'יוני', 'יולי', 'אוגוסט', 'ספטמבר', 'אוקטובר', 'נובמבר', 'דצמבר']
-const HEB_DAYS = ['א׳', 'ב׳', 'ג׳', 'ד׳', 'ה׳', 'ו׳', 'ש׳']
+import { useLanguage } from '../context/LanguageContext'
 
 export default function CalendarPage() {
   const now = new Date()
@@ -13,6 +11,7 @@ export default function CalendarPage() {
   const [loading, setLoading] = useState(false)
   const [selectedTask, setSelectedTask] = useState(null)
   const toast = useToast()
+  const { t } = useLanguage()
 
   useEffect(() => { loadTasks() }, [year, month])
 
@@ -21,7 +20,7 @@ export default function CalendarPage() {
     try {
       const data = await api.getCalendarTasks(year, month)
       setTasks(data)
-    } catch { toast.error('שגיאה', 'לא ניתן לטעון משימות') }
+    } catch { toast.error(t.common.error, t.common.serverError) }
     finally { setLoading(false) }
   }
 
@@ -35,15 +34,8 @@ export default function CalendarPage() {
     else setMonth(m => m + 1)
   }
 
-  function getDaysInMonth(y, m) {
-    return new Date(y, m, 0).getDate()
-  }
-
-  function getFirstDayOfMonth(y, m) {
-    // Sunday = 0, we want Saturday = 0 for Hebrew calendar
-    const d = new Date(y, m - 1, 1).getDay()
-    return d // 0=Sun,1=Mon,...,6=Sat
-  }
+  function getDaysInMonth(y, m) { return new Date(y, m, 0).getDate() }
+  function getFirstDayOfMonth(y, m) { return new Date(y, m - 1, 1).getDay() }
 
   function getTasksForDay(day) {
     return tasks.filter(t => {
@@ -55,7 +47,6 @@ export default function CalendarPage() {
 
   const daysInMonth = getDaysInMonth(year, month)
   const firstDay = getFirstDayOfMonth(year, month)
-  // For Sunday-first grid: firstDay = 0 means no prefix cells
   const totalCells = Math.ceil((firstDay + daysInMonth) / 7) * 7
   const today = new Date()
 
@@ -63,35 +54,34 @@ export default function CalendarPage() {
     return today.getFullYear() === year && today.getMonth() + 1 === month && today.getDate() === day
   }
 
-  const statusLabel = { TODO: 'לביצוע', IN_PROGRESS: 'בתהליך', DONE: 'הושלם' }
-  const priorityLabel = { HIGH: 'גבוהה', MEDIUM: 'בינונית', LOW: 'נמוכה' }
+  const statusLabel = { TODO: t.tasks.todo, IN_PROGRESS: t.tasks.inProgress, DONE: t.tasks.done }
+  const priorityLabel = { HIGH: t.tasks.high, MEDIUM: t.tasks.medium, LOW: t.tasks.low }
+  const priorityColors = [
+    { color: '#ef4444', label: t.tasks.high },
+    { color: '#f59e0b', label: t.tasks.medium },
+    { color: '#10b981', label: t.tasks.low },
+  ]
 
   return (
     <div>
-      {/* Nav */}
       <div className="calendar-nav">
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
           <button className="btn btn-secondary btn-icon" onClick={prevMonth}>‹</button>
-          <div className="calendar-month">{HEB_MONTHS[month - 1]} {year}</div>
+          <div className="calendar-month">{t.calendar.months[month - 1]} {year}</div>
           <button className="btn btn-secondary btn-icon" onClick={nextMonth}>›</button>
         </div>
         <div style={{ display: 'flex', gap: 8 }}>
           <button className="btn btn-secondary btn-sm" onClick={() => { setYear(now.getFullYear()); setMonth(now.getMonth() + 1) }}>
-            📅 היום
+            📅 {t.calendar.today}
           </button>
           <div style={{ fontSize: 13, color: 'var(--text-secondary)', display: 'flex', alignItems: 'center' }}>
-            {tasks.length} משימות בחודש זה
+            {tasks.length} {t.tasks.count}
           </div>
         </div>
       </div>
 
-      {/* Legend */}
       <div style={{ display: 'flex', gap: 16, marginBottom: 16, flexWrap: 'wrap' }}>
-        {[
-          { color: '#ef4444', label: 'עדיפות גבוהה' },
-          { color: '#f59e0b', label: 'עדיפות בינונית' },
-          { color: '#10b981', label: 'עדיפות נמוכה' },
-        ].map(l => (
+        {priorityColors.map(l => (
           <div key={l.label} style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, color: 'var(--text-secondary)' }}>
             <div style={{ width: 12, height: 12, borderRadius: 3, background: l.color }} />
             {l.label}
@@ -99,33 +89,22 @@ export default function CalendarPage() {
         ))}
       </div>
 
-      {loading ? (
-        <div className="loading-spinner" />
-      ) : (
+      {loading ? <div className="loading-spinner" /> : (
         <div className="calendar-grid">
-          {/* Day headers */}
-          {HEB_DAYS.map(d => (
+          {t.calendar.days.map(d => (
             <div key={d} className="calendar-day-header">{d}</div>
           ))}
-
-          {/* Day cells */}
           {Array.from({ length: totalCells }, (_, i) => {
             const day = i - firstDay + 1
             const isValid = day >= 1 && day <= daysInMonth
             const dayTasks = isValid ? getTasksForDay(day) : []
-
             return (
-              <div
-                key={i}
-                className={`calendar-day ${!isValid ? 'other-month' : ''} ${isValid && isToday(day) ? 'today' : ''}`}
-              >
+              <div key={i} className={`calendar-day ${!isValid ? 'other-month' : ''} ${isValid && isToday(day) ? 'today' : ''}`}>
                 {isValid && (
                   <>
                     <div className="day-number">{day}</div>
                     {dayTasks.slice(0, 3).map(task => (
-                      <div
-                        key={task.id}
-                        className="calendar-task"
+                      <div key={task.id} className="calendar-task"
                         style={{
                           background: task.priority === 'HIGH' ? '#ef4444' : task.priority === 'MEDIUM' ? '#f59e0b' : '#10b981',
                           opacity: task.status === 'DONE' ? 0.6 : 1
@@ -138,7 +117,7 @@ export default function CalendarPage() {
                     ))}
                     {dayTasks.length > 3 && (
                       <div style={{ fontSize: 11, color: 'var(--text-secondary)', padding: '2px 4px' }}>
-                        +{dayTasks.length - 3} נוספות
+                        +{dayTasks.length - 3}
                       </div>
                     )}
                   </>
@@ -149,12 +128,11 @@ export default function CalendarPage() {
         </div>
       )}
 
-      {/* Task detail popup */}
       {selectedTask && (
         <div className="modal-overlay" onClick={() => setSelectedTask(null)}>
           <div className="modal modal-sm" onClick={e => e.stopPropagation()}>
             <div className="modal-header">
-              <h2 className="modal-title">פרטי משימה</h2>
+              <h2 className="modal-title">{t.tasks.title}</h2>
               <button className="modal-close" onClick={() => setSelectedTask(null)}>×</button>
             </div>
             <div className="modal-body">
@@ -165,19 +143,15 @@ export default function CalendarPage() {
                   {statusLabel[selectedTask.status]}
                 </span>
                 {selectedTask.project && (
-                  <span className="task-project" style={{ background: selectedTask.project.color }}>
-                    {selectedTask.project.name}
-                  </span>
+                  <span className="task-project" style={{ background: selectedTask.project.color }}>{selectedTask.project.name}</span>
                 )}
               </div>
               {selectedTask.assignee && (
-                <p style={{ fontSize: 13, color: 'var(--text-secondary)' }}>
-                  👤 {selectedTask.assignee.name}
-                </p>
+                <p style={{ fontSize: 13, color: 'var(--text-secondary)' }}>👤 {selectedTask.assignee.name}</p>
               )}
               {selectedTask.dueDate && (
                 <p style={{ fontSize: 13, color: 'var(--text-secondary)', marginTop: 6 }}>
-                  📅 תאריך יעד: {new Date(selectedTask.dueDate).toLocaleDateString('he-IL')}
+                  📅 {t.tasks.dueDate}: {new Date(selectedTask.dueDate).toLocaleDateString()}
                 </p>
               )}
             </div>
