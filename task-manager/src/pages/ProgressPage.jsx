@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { api } from '../api/client'
 import { useToast } from '../context/ToastContext'
 import { useLanguage } from '../context/LanguageContext'
@@ -7,6 +8,7 @@ export default function ProgressPage() {
   const [progress, setProgress] = useState([])
   const [loading, setLoading] = useState(true)
   const toast = useToast()
+  const navigate = useNavigate()
   const { t } = useLanguage()
 
   useEffect(() => { loadProgress() }, [])
@@ -28,10 +30,10 @@ export default function ProgressPage() {
   return (
     <div>
       <div className="stats-grid" style={{ marginBottom: 24 }}>
-        <StatCard icon="👥" label={t.progress.activeEmployees} value={progress.length} color="#6366f1" bg="#ede9fe" />
-        <StatCard icon="📋" label={t.progress.totalTasks} value={totalTasks} color="#3b82f6" bg="#dbeafe" />
-        <StatCard icon="✅" label={t.progress.completed} value={totalDone} color="#10b981" bg="#d1fae5" />
-        <StatCard icon="📊" label={t.progress.completionRate} value={`${overallRate}%`} color="#f59e0b" bg="#fef3c7" />
+        <StatCard icon="👥" label={t.progress.activeEmployees} value={progress.length} color="#6366f1" bg="#ede9fe" onClick={() => navigate('/users')} />
+        <StatCard icon="📋" label={t.progress.totalTasks} value={totalTasks} color="#3b82f6" bg="#dbeafe" onClick={() => navigate('/tasks')} />
+        <StatCard icon="✅" label={t.progress.completed} value={totalDone} color="#10b981" bg="#d1fae5" onClick={() => navigate('/tasks?status=DONE')} />
+        <StatCard icon="📊" label={t.progress.completionRate} value={`${overallRate}%`} color="#f59e0b" bg="#fef3c7" onClick={() => navigate('/tasks')} />
       </div>
 
       <div className="card mb-6">
@@ -181,14 +183,15 @@ function BarSegment({ height, color, borderColor, title }) {
   )
 }
 
-function StatCard({ icon, label, value, color, bg }) {
+function StatCard({ icon, label, value, color, bg, onClick }) {
   return (
-    <div className="stat-card">
+    <div className="stat-card" onClick={onClick} style={{ cursor: onClick ? 'pointer' : 'default' }}>
       <div className="stat-icon" style={{ background: bg, color }}>{icon}</div>
       <div className="stat-info">
         <div className="stat-label">{label}</div>
         <div className="stat-value" style={{ color }}>{value}</div>
       </div>
+      {onClick && <div style={{ color: 'var(--text-light)', fontSize: 18, marginRight: 'auto' }}>›</div>}
     </div>
   )
 }
