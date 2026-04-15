@@ -57,7 +57,7 @@ export default function ProgressPage() {
         </div>
       ) : (
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(360px, 1fr))', gap: 16 }}>
-          {progress.map(emp => <EmployeeCard key={emp.id} employee={emp} t={t} />)}
+          {progress.map(emp => <EmployeeCard key={emp.id} employee={emp} t={t} navigate={navigate} />)}
         </div>
       )}
 
@@ -75,12 +75,18 @@ export default function ProgressPage() {
   )
 }
 
-function EmployeeCard({ employee, t }) {
+function EmployeeCard({ employee, t, navigate }) {
   const rate = employee.total > 0 ? Math.round((employee.done / employee.total) * 100) : 0
   return (
     <div className="card">
       <div style={{ padding: '20px 20px 16px' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 14, marginBottom: 16 }}>
+        <div
+          style={{ display: 'flex', alignItems: 'center', gap: 14, marginBottom: 16, cursor: 'pointer', borderRadius: 'var(--radius)', transition: 'background 0.15s' }}
+          onClick={() => navigate(`/tasks?assignee=${employee.id}`)}
+          onMouseEnter={e => e.currentTarget.style.background = 'var(--bg-secondary)'}
+          onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+          title={t.progress.viewTasks || 'צפה במשימות'}
+        >
           <div className="avatar avatar-lg" style={{ background: employee.avatarColor }}>{employee.name.slice(0, 2)}</div>
           <div style={{ flex: 1 }}>
             <div style={{ fontWeight: 700, fontSize: 15 }}>{employee.name}</div>
@@ -91,17 +97,18 @@ function EmployeeCard({ employee, t }) {
               {rate}%
             </div>
           </div>
+          <div style={{ color: 'var(--text-light)', fontSize: 18 }}>›</div>
         </div>
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 8, marginBottom: 14 }}>
-          <MiniStat label={t.progress.done} value={employee.done} color="#10b981" bg="#d1fae5" icon="✅" />
-          <MiniStat label={t.progress.inProgress} value={employee.inProgress} color="#3b82f6" bg="#dbeafe" icon="⚡" />
-          <MiniStat label={t.progress.todo} value={employee.todo} color="#f59e0b" bg="#fef3c7" icon="📌" />
+          <MiniStat label={t.progress.done} value={employee.done} color="#10b981" bg="#d1fae5" icon="✅" onClick={() => navigate(`/tasks?assignee=${employee.id}&status=DONE`)} />
+          <MiniStat label={t.progress.inProgress} value={employee.inProgress} color="#3b82f6" bg="#dbeafe" icon="⚡" onClick={() => navigate(`/tasks?assignee=${employee.id}&status=IN_PROGRESS`)} />
+          <MiniStat label={t.progress.todo} value={employee.todo} color="#f59e0b" bg="#fef3c7" icon="📌" onClick={() => navigate(`/tasks?assignee=${employee.id}&status=TODO`)} />
         </div>
         {employee.total > 0 && (
           <>
-            <ProgressBar label={t.progress.done} value={employee.done} total={employee.total} color="#10b981" />
-            <ProgressBar label={t.progress.inProgress} value={employee.inProgress} total={employee.total} color="#3b82f6" />
-            <ProgressBar label={t.progress.todo} value={employee.todo} total={employee.total} color="#f59e0b" />
+            <ProgressBar label={t.progress.done} value={employee.done} total={employee.total} color="#10b981" onClick={() => navigate(`/tasks?assignee=${employee.id}&status=DONE`)} />
+            <ProgressBar label={t.progress.inProgress} value={employee.inProgress} total={employee.total} color="#3b82f6" onClick={() => navigate(`/tasks?assignee=${employee.id}&status=IN_PROGRESS`)} />
+            <ProgressBar label={t.progress.todo} value={employee.todo} total={employee.total} color="#f59e0b" onClick={() => navigate(`/tasks?assignee=${employee.id}&status=TODO`)} />
           </>
         )}
         {employee.total === 0 && <p style={{ color: 'var(--text-light)', fontSize: 13, textAlign: 'center', padding: '8px 0' }}>{t.common.noData}</p>}
@@ -110,9 +117,14 @@ function EmployeeCard({ employee, t }) {
   )
 }
 
-function MiniStat({ label, value, color, bg, icon }) {
+function MiniStat({ label, value, color, bg, icon, onClick }) {
   return (
-    <div style={{ background: bg, borderRadius: 'var(--radius)', padding: '8px 10px', textAlign: 'center' }}>
+    <div
+      onClick={onClick}
+      style={{ background: bg, borderRadius: 'var(--radius)', padding: '8px 10px', textAlign: 'center', cursor: 'pointer', transition: 'opacity 0.15s' }}
+      onMouseEnter={e => e.currentTarget.style.opacity = '0.75'}
+      onMouseLeave={e => e.currentTarget.style.opacity = '1'}
+    >
       <div style={{ fontSize: 18 }}>{icon}</div>
       <div style={{ fontSize: 18, fontWeight: 800, color }}>{value}</div>
       <div style={{ fontSize: 10, color, fontWeight: 600, textTransform: 'uppercase' }}>{label}</div>
@@ -120,10 +132,16 @@ function MiniStat({ label, value, color, bg, icon }) {
   )
 }
 
-function ProgressBar({ label, value, total, color }) {
+function ProgressBar({ label, value, total, color, onClick }) {
   const pct = total > 0 ? Math.round((value / total) * 100) : 0
   return (
-    <div className="progress-bar-container">
+    <div
+      className="progress-bar-container"
+      onClick={onClick}
+      style={{ cursor: 'pointer', borderRadius: 'var(--radius)', padding: '2px 4px', transition: 'background 0.15s' }}
+      onMouseEnter={e => e.currentTarget.style.background = 'var(--bg-secondary)'}
+      onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+    >
       <div className="progress-bar-label">
         <span style={{ fontSize: 12, color: 'var(--text-secondary)' }}>{label}</span>
         <span style={{ fontSize: 12, fontWeight: 700, color }}>{value} ({pct}%)</span>

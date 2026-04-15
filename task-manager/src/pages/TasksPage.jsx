@@ -29,7 +29,7 @@ export default function TasksPage() {
   const [filters, setFilters] = useState({
     status: searchParams.get('status') || '',
     priority: '',
-    assigneeId: '',
+    assigneeId: searchParams.get('assignee') || '',
     projectId: '',
     search: '',
     overdue: searchParams.get('overdue') || ''
