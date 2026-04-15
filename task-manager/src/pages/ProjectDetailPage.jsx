@@ -186,18 +186,27 @@ export default function ProjectDetailPage() {
       {/* Stats row */}
       <div className="stats-grid" style={{ marginBottom: 20 }}>
         {[
-          { icon: '📋', label: t.projectDetail.total, value: stats.total, color: project.color, bg: project.color + '20' },
-          { icon: '✅', label: t.projectDetail.done, value: stats.done, color: '#10b981', bg: '#d1fae5' },
-          { icon: '⚡', label: t.projectDetail.inProgress, value: stats.inProgress, color: '#3b82f6', bg: '#dbeafe' },
-          { icon: '📌', label: t.projectDetail.todo, value: stats.todo, color: '#f59e0b', bg: '#fef3c7' },
-          { icon: '⏰', label: t.projectDetail.overdue, value: stats.overdue, color: '#ef4444', bg: '#fee2e2' },
+          { icon: '📋', label: t.projectDetail.total, value: stats.total, color: project.color, bg: project.color + '20', filter: 'ALL' },
+          { icon: '✅', label: t.projectDetail.done, value: stats.done, color: '#10b981', bg: '#d1fae5', filter: 'DONE' },
+          { icon: '⚡', label: t.projectDetail.inProgress, value: stats.inProgress, color: '#3b82f6', bg: '#dbeafe', filter: 'IN_PROGRESS' },
+          { icon: '📌', label: t.projectDetail.todo, value: stats.todo, color: '#f59e0b', bg: '#fef3c7', filter: 'TODO' },
+          { icon: '⏰', label: t.projectDetail.overdue, value: stats.overdue, color: '#ef4444', bg: '#fee2e2', filter: 'OVERDUE' },
         ].map(s => (
-          <div className="stat-card" key={s.label}>
+          <div
+            className="stat-card"
+            key={s.label}
+            onClick={() => {
+              if (s.filter === 'OVERDUE') navigate(`/tasks?project=${id}&overdue=true`)
+              else { setTaskFilter(s.filter); document.querySelector('.task-list-anchor')?.scrollIntoView({ behavior: 'smooth' }) }
+            }}
+            style={{ cursor: 'pointer' }}
+          >
             <div className="stat-icon" style={{ background: s.bg, color: s.color }}>{s.icon}</div>
             <div className="stat-info">
               <div className="stat-label">{s.label}</div>
               <div className="stat-value" style={{ color: s.color }}>{s.value}</div>
             </div>
+            <div style={{ color: 'var(--text-light)', fontSize: 18 }}>›</div>
           </div>
         ))}
       </div>
@@ -217,6 +226,9 @@ export default function ProjectDetailPage() {
               </div>
             </div>
           </div>
+
+          {/* Anchor for scroll */}
+          <div className="task-list-anchor" />
 
           {/* Filter tabs */}
           <div style={{ display: 'flex', gap: 8, marginBottom: 14 }}>
@@ -285,11 +297,19 @@ export default function ProjectDetailPage() {
                 const memberDone = memberTasks.filter(task => task.status === 'DONE').length
                 const memberPct = memberTasks.length > 0 ? Math.round((memberDone / memberTasks.length) * 100) : 0
                 return (
-                  <div key={m.id} style={{
-                    display: 'flex', alignItems: 'center', gap: 10,
-                    padding: '10px 0',
-                    borderBottom: '1px solid var(--border)'
-                  }}>
+                  <div
+                    key={m.id}
+                    onClick={() => navigate(`/tasks?assignee=${m.id}&project=${id}`)}
+                    style={{
+                      display: 'flex', alignItems: 'center', gap: 10,
+                      padding: '10px 6px',
+                      borderBottom: '1px solid var(--border)',
+                      cursor: 'pointer', borderRadius: 'var(--radius)',
+                      transition: 'background 0.15s'
+                    }}
+                    onMouseEnter={e => e.currentTarget.style.background = 'var(--bg-secondary)'}
+                    onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+                  >
                     <div className="avatar" style={{ background: m.avatarColor }}>
                       {m.name.slice(0, 2)}
                     </div>
@@ -303,6 +323,7 @@ export default function ProjectDetailPage() {
                         <div className="progress-bar-fill" style={{ width: `${memberPct}%`, background: project.color }} />
                       </div>
                     </div>
+                    <div style={{ color: 'var(--text-light)', fontSize: 16 }}>›</div>
                   </div>
                 )
               })}

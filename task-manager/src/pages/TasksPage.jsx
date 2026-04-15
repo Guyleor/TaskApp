@@ -30,7 +30,7 @@ export default function TasksPage() {
     status: searchParams.get('status') || '',
     priority: '',
     assigneeId: searchParams.get('assignee') || '',
-    projectId: '',
+    projectId: searchParams.get('project') || '',
     search: '',
     overdue: searchParams.get('overdue') || ''
   })
