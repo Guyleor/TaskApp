@@ -1,114 +1,114 @@
-# TaskManager — מערכת ניהול משימות לצוותים
+# TaskManager — Team Task Management System
 
-> אפליקציית Full-Stack לניהול פרויקטים ומשימות בארגון, עם תמיכה מלאה בעברית ואנגלית.
+> A full-stack project and task management app for organizations, with full Hebrew & English support.
 
 🌐 **Live Demo:** [taskapp-production-11d4.up.railway.app](https://taskapp-production-11d4.up.railway.app)
 
 ---
 
-## תכונות עיקריות
+## Features
 
-### ניהול משימות ופרויקטים
-- יצירה, עריכה ומחיקה של פרויקטים ומשימות
-- סינון לפי סטטוס, עדיפות, עובד, פרויקט ותאריך
-- מעבר מהיר בין סטטוסים (To Do / In Progress / Done) ישירות מהכרטיס
-- תצוגת לוח שנה חודשי עם כל המשימות לפי תאריך יעד
+### Tasks & Projects
+- Create, edit and delete projects and tasks
+- Filter by status, priority, assignee, project and due date
+- Quick status switching (To Do / In Progress / Done) directly from the task card
+- Monthly calendar view showing all tasks by due date
 
-### דשבורד חכם
-- כרטיסי סטטיסטיקות לחיצים — לחיצה על כרטיס מנווטת ישירות למשימות המתאימות
-- סקירה מהירה: סה"כ משימות, הושלמו, בתהליך, באיחור
+### Smart Dashboard
+- Clickable stat cards — clicking a card navigates directly to the relevant filtered tasks
+- Quick overview: total tasks, completed, in progress, overdue
 
-### עמוד התקדמות צוות
-- תצוגה ויזואלית של התקדמות כל עובד (גרף עמודות + progress bars)
-- לחיצה על עובד → צפייה בכל המשימות שלו
-- לחיצה על כל סטטוס (Done / In Progress / To Do) → סינון ישיר
+### Team Progress Page
+- Visual progress breakdown per employee (bar chart + progress bars)
+- Click an employee → view all their tasks
+- Click any status (Done / In Progress / To Do) → instant filtered view
 
-### ניווט חכם בפרויקטים
-- כרטיסי סטטיסטיקות בפירוט פרויקט → סינון רשימת המשימות תוך הדף
-- לחיצה על איש צוות → עמוד משימות מסונן לפי עובד + פרויקט
+### Smart Navigation in Projects
+- Stat cards inside project detail → filter the task list in-page
+- Click a team member → tasks page filtered by that employee + project
 
-### קבצי פרויקט
-- העלאת קבצים משותפים לכל משתתפי הפרויקט (תמונות, PDF, Word, Excel ועוד)
-- הורדה ומחיקה של קבצים
+### Project Files
+- Upload shared files for all project members (images, PDFs, Word, Excel, etc.)
+- Download and delete files
 
-### תבניות משימות
-- מנהל יוצר תבניות קבועות עם כותרת, תיאור ועדיפות
-- בעת יצירת משימה — אפשרות להתחיל מתבנית ולמלא את השדות אוטומטית
+### Task Templates
+- Admins create reusable templates with title, description and priority
+- When creating a task — choose a template to auto-fill the form fields
 
-### בינה מלאכותית (Claude AI)
-- עוזר AI מובנה לניהול משימות וייעוץ בפרויקטים
+### AI Assistant (Claude AI)
+- Built-in AI assistant for task management advice and project guidance
 
-### ממשק משתמש
-- **תמיכה מלאה בעברית ואנגלית** — מיתוג RTL/LTR אוטומטי
-- **Responsive** — תפריט המבורגר וסייד-בר כ-overlay במובייל
-- מערכת התראות (Toast notifications)
-- אבטחה מבוססת JWT עם הרשאות Admin / Employee
+### UI & Accessibility
+- **Full Hebrew & English support** — automatic RTL/LTR direction switching
+- **Mobile responsive** — hamburger menu and sidebar overlay on small screens
+- Toast notification system
+- JWT-based authentication with Admin / Employee roles
 
 ---
 
-## טכנולוגיות
+## Tech Stack
 
 ### Frontend
-| טכנולוגיה | שימוש |
+| Technology | Usage |
 |---|---|
 | React 18 + Vite | UI Framework |
-| React Router v6 | ניווט ו-SPA |
-| Context API | ניהול State (Auth, Language, Toast) |
-| CSS Variables | עיצוב דינמי + RTL/LTR |
+| React Router v6 | Navigation & SPA routing |
+| Context API | State management (Auth, Language, Toast) |
+| CSS Variables | Dynamic theming + RTL/LTR |
 
 ### Backend
-| טכנולוגיה | שימוש |
+| Technology | Usage |
 |---|---|
-| Node.js + Express | שרת API |
-| Prisma ORM | גישה לבסיס נתונים |
-| SQLite | בסיס נתונים |
-| JWT | אימות משתמשים |
-| Multer | העלאת קבצים |
-| bcrypt | הצפנת סיסמאות |
+| Node.js + Express | REST API server |
+| Prisma ORM | Database access |
+| SQLite | Database |
+| JWT | User authentication |
+| Multer | File uploads |
+| bcrypt | Password hashing |
 
 ### DevOps
-| טכנולוגיה | שימוש |
+| Technology | Usage |
 |---|---|
-| Railway | Hosting + CD |
-| GitHub | Source Control + CI trigger |
+| Railway | Hosting + Continuous Deployment |
+| GitHub | Source control + CI trigger |
 
 ---
 
-## התקנה מקומית
+## Local Setup
 
-### דרישות מקדימות
+### Prerequisites
 - Node.js 18+
 - npm
 
-### הרצה
+### Run the app
 
 ```bash
-# שכפול הפרויקט
+# Clone the repo
 git clone https://github.com/Guyleor/TaskApp.git
 cd TaskApp
 
-# התקנת תלויות Backend
+# Install backend dependencies
 cd task-manager/backend
 npm install
 
-# הגדרת בסיס הנתונים
+# Set up the database
 npx prisma db push
 
-# הרצת Backend (פורט 3002)
+# Start backend (port 3002)
 node src/index.js
 ```
 
 ```bash
-# בטרמינל נפרד — Frontend
+# In a separate terminal — Frontend
 cd task-manager
 npm install
 npm run dev
-# פורט 5173
+# Runs on port 5173
 ```
 
-### משתני סביבה (Backend)
+### Environment Variables (Backend)
 
-צור קובץ `.env` בתיקיית `task-manager/backend/`:
+Create a `.env` file inside `task-manager/backend/`:
 
 ```env
 DATABASE_URL="file:./dev.db"
@@ -118,22 +118,22 @@ NODE_ENV=development
 
 ---
 
-## משתמשי Demo
+## Demo Users
 
-| תפקיד | אימייל | סיסמה |
+| Role | Email | Password |
 |---|---|---|
 | Admin | admin@company.com | admin123 |
 | Employee | david@company.com | employee123 |
 
 ---
 
-## מבנה הפרויקט
+## Project Structure
 
 ```
 TaskApp/
 ├── task-manager/
 │   ├── src/
-│   │   ├── api/           # client.js — כל קריאות ה-API
+│   │   ├── api/           # client.js — all API calls
 │   │   ├── components/    # Layout, Modal, common components
 │   │   ├── context/       # AuthContext, LanguageContext, ToastContext
 │   │   └── pages/         # Dashboard, Projects, Tasks, Calendar, Progress...
@@ -148,19 +148,6 @@ TaskApp/
 
 ---
 
-## Screenshots
-
-### דשבורד ראשי
-> סטטיסטיקות לחיצות, סקירת משימות אחרונות
-
-### עמוד התקדמות
-> גרף התקדמות לכל עובד, לחיצה על כל סטטוס לסינון ישיר
-
-### פירוט פרויקט
-> צוות, קבצים משותפים, תבניות משימות, סינון תוך-דף
-
----
-
-## רישיון
+## License
 
 MIT © 2026
